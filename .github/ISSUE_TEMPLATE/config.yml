@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Download, docs and video guides
+    url: https://bestin-it.com/llm-vault/
+    about: Installers, setup guides and articles on bestin-it.com
+  - name: Report a vulnerability (private)
+    url: https://github.com/bestin-it/llm-vault/security/advisories/new
+    about: Security issues go here, not into public issues

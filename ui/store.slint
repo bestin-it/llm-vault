@@ -1,0 +1,303 @@
+// Shared state between the Rust core and the UI. All data is pushed from Rust; all actions
+// are callbacks implemented in Rust (src/ui.rs). Nothing here talks to the network.
+
+export struct GroupItem { id: string, name: string, depth: int, count: int, provider: bool }
+export struct EntryItem {
+    id: string, group-id: string, group-name: string, title: string, username: string, url: string,
+    notes: string, tags: string, has-password: bool, provider: bool, modified: string, expires: string
+}
+export struct PresetItem {
+    id: string, name: string, category: string, description: string, needs-key: bool,
+    base-url: string, key-url: string, examples: string, kind: string
+}
+export struct ProviderItem {
+    id: string, name: string, preset: string, kind: string, base-url: string, has-key: bool,
+    enabled: bool, allow-http: bool, api-version: string, models: int, status: string, status-ok: bool
+}
+export struct ModelItem {
+    alias: string, provider-id: string, provider-name: string, upstream: string, description: string,
+    enabled: bool, price: string
+}
+export struct PriceItem {
+    id: string, alias: string, currency: string, input: string, output: string, cache-read: string,
+    cache-write: string, reasoning: string, effective: string, source: string, estimated: bool
+}
+export struct ClientItem {
+    id: string, name: string, project: string, prefix: string, models: string, mode: string,
+    expires: string, limits: string, revoked: bool, expired: bool, last-used: string, spent: string
+}
+export struct RuleItem { id: string, kind: string, client-id: string, client: string, model: string, created: string }
+export struct ConsentItem {
+    id: string, client: string, agent: string, project: string, model: string, provider: string,
+    upstream: string, mode: string, requested: string
+}
+export struct BarItem { label: string, value: float, amount: string, sub: string }
+export struct DayItem { day: string, value: float, label: string }
+export struct RequestItem {
+    ts: string, client: string, agent: string, project: string, model: string, provider: string,
+    decision: string, consent: string, status: int, latency: string, tokens: string, cost: string,
+    source: string, error: string, ok: bool, denied: bool, endpoint: string
+}
+export struct EventItem { ts: string, kind: string, message: string }
+export struct CheckItem { name: string, checked: bool }
+export struct FxItem { currency: string, rate: string, date: string, source: string }
+
+export global Store {
+    // ---- app / vault state
+    in-out property <int> page: 0;
+    in-out property <bool> unlocked: false;
+    in-out property <bool> signed-in: false;
+    in-out property <string> user-label;
+    in-out property <string> user-initials;
+    in-out property <[string]> profile-names;
+    in-out property <string> login-username;
+    in-out property <string> welcome-mode: "login"; // login | register | unlock | create
+    in-out property <string> vault-path;
+    in-out property <string> new-vault-path;
+    in-out property <string> vault-name: "LLM Vault";
+    in-out property <string> keyfile-path;
+    in-out property <string> unlock-error;
+    in-out property <bool> busy: false;
+    in-out property <string> gateway-url;
+    in-out property <string> gateway-error;
+    in-out property <string> version: "0.1.0";
+    in-out property <string> tour-pw; // --tour only: simulated typing into the unlock field
+    in-out property <string> tour-export-path; // --tour only: export-csv writes here instead of asking for a file
+    in-out property <string> toast;
+    in-out property <bool> toast-error;
+
+    // ---- dashboard
+    in-out property <int> period-index: 1; // 7 / 30 / 90 / 365 days
+    in-out property <string> kpi-calls: "0";
+    in-out property <string> kpi-calls-sub;
+    in-out property <string> kpi-tokens: "0";
+    in-out property <string> kpi-tokens-sub;
+    in-out property <string> kpi-cost: "0.00";
+    in-out property <string> kpi-cost-sub;
+    in-out property <string> kpi-latency: "-";
+    in-out property <string> kpi-latency-sub;
+    in-out property <string> currency: "USD";
+    in-out property <[BarItem]> cost-by-provider;
+    in-out property <[BarItem]> top-models;
+    in-out property <[BarItem]> top-agents;
+    in-out property <[DayItem]> daily;
+    in-out property <[RequestItem]> recent;
+    in-out property <int> stat-providers;
+    in-out property <int> stat-models;
+    in-out property <int> stat-clients;
+    in-out property <int> stat-rules;
+    in-out property <int> stat-entries;
+
+    // ---- passwords
+    in-out property <[GroupItem]> groups;
+    in-out property <string> selected-group;
+    in-out property <[EntryItem]> entries;
+    in-out property <string> search;
+    in-out property <[string]> group-names;
+    in-out property <bool> editor-open;
+    in-out property <string> e-id;
+    in-out property <string> e-title;
+    in-out property <string> e-username;
+    in-out property <string> e-password;
+    in-out property <bool> e-password-dirty;
+    in-out property <bool> e-password-visible;
+    in-out property <string> e-url;
+    in-out property <string> e-notes;
+    in-out property <string> e-tags;
+    in-out property <string> e-expires;
+    in-out property <int> e-group-index;
+    in-out property <bool> e-provider;
+    in-out property <string> e-modified;
+    in-out property <int> gen-length: 24;
+    in-out property <bool> gen-upper: true;
+    in-out property <bool> gen-digits: true;
+    in-out property <bool> gen-symbols: true;
+
+    // ---- providers
+    in-out property <[PresetItem]> presets;
+    in-out property <[ProviderItem]> providers;
+    in-out property <bool> provider-dialog;
+    in-out property <string> pd-id;
+    in-out property <string> pd-preset;
+    in-out property <string> pd-kind;
+    in-out property <string> pd-name;
+    in-out property <string> pd-base-url;
+    in-out property <string> pd-key;
+    in-out property <bool> pd-needs-key;
+    in-out property <string> pd-key-url;
+    in-out property <string> pd-api-version;
+    in-out property <bool> pd-allow-http;
+    in-out property <string> pd-examples;
+    in-out property <bool> discover-dialog;
+    in-out property <string> discover-provider;
+    in-out property <string> discover-status;
+    in-out property <[CheckItem]> discovered;
+    in-out property <string> catalog-filter: "All";
+
+    // ---- models & pricing
+    in-out property <[ModelItem]> models;
+    in-out property <[string]> provider-names;
+    in-out property <string> m-orig-alias;
+    in-out property <string> m-alias;
+    in-out property <int> m-provider-index;
+    in-out property <string> m-upstream;
+    in-out property <string> m-description;
+    in-out property <bool> m-enabled: true;
+    in-out property <[PriceItem]> prices;
+    in-out property <string> p-currency: "USD";
+    in-out property <string> p-input: "0";
+    in-out property <string> p-output: "0";
+    in-out property <string> p-cache-read: "0";
+    in-out property <string> p-cache-write: "0";
+    in-out property <string> p-reasoning: "0";
+    in-out property <string> p-effective;
+    in-out property <string> p-source;
+    in-out property <bool> p-estimated;
+
+    // ---- clients
+    in-out property <[ClientItem]> clients;
+    in-out property <string> c-name;
+    in-out property <string> c-project;
+    in-out property <string> c-models;
+    in-out property <int> c-mode-index: 0;
+    in-out property <int> c-ttl-index: 4;
+    in-out property <string> c-daily: "0";
+    in-out property <string> c-monthly: "0";
+    in-out property <string> c-rpm: "60";
+    in-out property <bool> token-dialog;
+    in-out property <string> new-token;
+    in-out property <string> new-token-client;
+    in-out property <int> snippet-index: 0;
+    in-out property <string> snippet;
+
+    // ---- consents
+    in-out property <[ConsentItem]> pending;
+    in-out property <[RuleItem]> rules;
+    in-out property <int> consent-arm-ms: 1200;
+
+    // ---- activity
+    in-out property <[RequestItem]> requests;
+    in-out property <[EventItem]> events;
+    in-out property <[string]> f-providers: ["All providers"];
+    in-out property <[string]> f-models: ["All models"];
+    in-out property <[string]> f-clients: ["All clients"];
+    in-out property <int> f-period: 1;
+    in-out property <int> f-provider: 0;
+    in-out property <int> f-model: 0;
+    in-out property <int> f-client: 0;
+    in-out property <int> f-status: 0;
+    in-out property <string> f-search;
+    in-out property <int> activity-tab: 0;
+
+    // ---- settings
+    in-out property <string> s-host;
+    in-out property <string> s-port;
+    in-out property <string> s-consent-timeout;
+    in-out property <string> s-autolock;
+    in-out property <string> s-clip;
+    in-out property <string> s-arm;
+    in-out property <int> s-currency-index;
+    in-out property <[FxItem]> fx;
+    in-out property <string> s-fx-currency: "EUR";
+    in-out property <string> s-fx-rate;
+    in-out property <string> s-fx-date;
+    in-out property <string> s-fx-source;
+    in-out property <string> login-cur;
+    in-out property <string> login-new;
+    in-out property <string> login-new2;
+    in-out property <string> pw-current;
+    in-out property <string> pw-new;
+    in-out property <string> pw-new2;
+    in-out property <string> data-dir;
+
+    // ---- confirm dialog
+    in-out property <bool> confirm-open;
+    in-out property <string> confirm-title;
+    in-out property <string> confirm-text;
+    in-out property <string> confirm-action;
+    in-out property <string> confirm-arg;
+    in-out property <string> confirm-arg2;
+
+    // ---- callbacks: vault
+    callback login(string /*user*/, string /*password*/);
+    callback register(string /*user*/, string /*display name*/, string /*password*/, string /*confirm*/);
+    callback logout();
+    callback delete-profile(string);
+    in-out property <string> confirm-input;
+    in-out property <string> confirm-expected;
+    callback change-login-password();
+    callback unlock(string /*password*/);
+    callback create-vault(string /*password*/, string /*confirm*/);
+    callback browse-vault();
+    callback browse-new-vault();
+    callback browse-keyfile();
+    callback lock();
+    callback navigate(int);
+    callback activity();
+    callback copy-text(string);
+    callback open-url(string);
+    pure callback strength(string) -> float;
+    pure callback strength-label(string) -> string;
+
+    // ---- callbacks: passwords
+    callback select-group(string);
+    callback search-changed(string);
+    callback select-entry(string);
+    callback new-entry();
+    callback save-entry();
+    callback delete-entry(string);
+    callback copy-username(string);
+    callback copy-password(string);
+    callback reveal-password();
+    callback generate-password();
+    callback add-group(string);
+    callback rename-group(string, string);
+    callback delete-group(string);
+
+    // ---- callbacks: providers
+    callback open-preset(string);
+    callback edit-provider(string);
+    callback save-provider();
+    callback delete-provider(string);
+    callback toggle-provider(string, bool);
+    callback test-provider(string);
+    callback discover-models(string);
+    callback import-discovered();
+    callback detect-local();
+    callback catalog-changed();
+
+    // ---- callbacks: models
+    callback select-model(string);
+    callback new-model();
+    callback save-model();
+    callback delete-model(string);
+    callback add-price();
+    callback delete-price(string);
+
+    // ---- callbacks: clients
+    callback create-client();
+    callback revoke-client(string);
+    callback rotate-client(string);
+    callback delete-client(string);
+    callback snippet-changed(int);
+
+    // ---- callbacks: consents
+    callback decide(string, int); // 0 deny, 1 once, 2 session, 3 always
+    callback revoke-rule(string, string, string); // kind, id, model
+
+    // ---- callbacks: activity
+    callback apply-filter();
+    callback export-csv();
+    callback export-json();
+
+    // ---- callbacks: dashboard & settings
+    callback refresh-dashboard();
+    callback save-settings();
+    callback save-fx();
+    callback change-password();
+    callback import-kdbx();
+    callback export-copy();
+    callback open-data-dir();
+    callback restart-gateway();
+    callback confirm-accepted();
+}

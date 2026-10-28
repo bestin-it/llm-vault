@@ -1,0 +1,140 @@
+import { LineEdit, ComboBox, CheckBox, ListView, ScrollView } from "std-widgets.slint";
+import { Theme, VButton, IconButton, Field, Label, Pill, EmptyState, Card, SectionTitle } from "widgets.slint";
+import { Store } from "store.slint";
+
+export component ModelsPage inherits Rectangle {
+    background: Theme.bg;
+    HorizontalLayout {
+        padding: 18px;
+        spacing: 14px;
+        Card {
+            horizontal-stretch: 1;
+            VerticalLayout {
+                padding: 14px;
+                spacing: 10px;
+                HorizontalLayout {
+                    SectionTitle {
+                        title: "Model aliases";
+                        subtitle: "Clients call an alias (e.g. foundry-glm); the vault maps it to a provider and upstream model.";
+                    }
+                    Rectangle { }
+                    VButton { text: "New alias"; has-icon: true; icon: @image-url("icons/plus.svg"); clicked => { Store.new-model(); } }
+                }
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    spacing: 10px;
+                    Label { text: "ALIAS"; width: 26%; }
+                    Label { text: "PROVIDER / UPSTREAM"; horizontal-stretch: 1; }
+                    Label { text: "PRICE / 1M (in · out · cache)"; width: 200px; }
+                    Label { text: "STATUS"; width: 70px; }
+                }
+                if Store.models.length == 0: EmptyState {
+                    title: "No aliases";
+                    text: "Connect a provider and use 'Discover models', or create an alias manually.";
+                }
+                ListView {
+                    for m in Store.models: Rectangle {
+                        height: 50px;
+                        border-radius: 8px;
+                        background: Store.m-orig-alias == m.alias ? Theme.blue-soft : mta.has-hover ? Theme.subtle : transparent;
+                        mta := TouchArea { mouse-cursor: pointer; clicked => { Store.select-model(m.alias); } }
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            spacing: 10px;
+                            VerticalLayout {
+                                width: 26%;
+                                alignment: center;
+                                Text { text: m.alias; font-size: 13px; font-weight: 800; color: Theme.text; overflow: elide; }
+                                Text { text: m.description; font-size: 10px; color: Theme.faint; overflow: elide; }
+                            }
+                            VerticalLayout {
+                                horizontal-stretch: 1;
+                                alignment: center;
+                                Text { text: m.provider-name; font-size: 12px; color: Theme.text; overflow: elide; }
+                                Text { text: m.upstream; font-size: 11px; color: Theme.muted; overflow: elide; }
+                            }
+                            Text { width: 200px; text: m.price; font-size: 11px; color: m.price == "no price" ? Theme.amber : Theme.blue; vertical-alignment: center; overflow: elide; }
+                            VerticalLayout { width: 70px; alignment: center; Pill { text: m.enabled ? "enabled" : "disabled"; kind: m.enabled ? "ok" : "neutral"; } }
+                        }
+                    }
+                }
+            }
+        }
+
+        Card {
+            width: 400px;
+            ScrollView {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 10px;
+                    alignment: start;
+                    Text { text: Store.m-orig-alias == "" ? "New alias" : "Edit alias"; font-size: 16px; font-weight: 800; color: Theme.text; }
+                    Field { label: "ALIAS (what clients send as \"model\")"; text <=> Store.m-alias; placeholder: "foundry-glm"; }
+                    VerticalLayout {
+                        spacing: 4px;
+                        Label { text: "PROVIDER"; }
+                        ComboBox { model: Store.provider-names; current-index <=> Store.m-provider-index; }
+                    }
+                    Field { label: "UPSTREAM MODEL / DEPLOYMENT"; text <=> Store.m-upstream; placeholder: "glm-4.6"; }
+                    Field { label: "DESCRIPTION"; text <=> Store.m-description; }
+                    CheckBox { text: "Enabled"; checked <=> Store.m-enabled; }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        VButton { text: "Save alias"; clicked => { Store.save-model(); } }
+                        Rectangle { }
+                        if Store.m-orig-alias != "": VButton { text: "Delete"; kind: "danger"; clicked => { Store.delete-model(Store.m-orig-alias); } }
+                    }
+
+                    if Store.m-orig-alias != "": VerticalLayout {
+                        spacing: 10px;
+                        Rectangle { height: 1px; background: Theme.border; }
+                        SectionTitle {
+                            title: "Price list (versioned)";
+                            subtitle: "USD/EUR/PLN per 1M tokens. A new version applies from its date; history stays intact so old requests can be re-costed.";
+                        }
+                        for p in Store.prices: Rectangle {
+                            height: 46px;
+                            border-radius: 8px;
+                            background: Theme.subtle;
+                            HorizontalLayout {
+                                padding-left: 10px;
+                                padding-right: 6px;
+                                spacing: 8px;
+                                VerticalLayout {
+                                    alignment: center;
+                                    horizontal-stretch: 1;
+                                    Text { text: "from " + p.effective + "  ·  " + p.currency + (p.estimated ? "  ·  estimate" : ""); font-size: 11px; font-weight: 700; color: Theme.text; }
+                                    Text { text: "in " + p.input + " · out " + p.output + " · cache r/w " + p.cache-read + "/" + p.cache-write + (p.reasoning != "0" ? " · reasoning " + p.reasoning : ""); font-size: 11px; color: Theme.muted; overflow: elide; }
+                                }
+                                IconButton { y: (parent.height - self.height) / 2; icon: @image-url("icons/trash.svg"); tint: Theme.red; clicked => { Store.delete-price(p.id); } }
+                            }
+                        }
+                        GridLayout {
+                            spacing: 8px;
+                            Row {
+                                Field { label: "CURRENCY"; text <=> Store.p-currency; }
+                                Field { label: "EFFECTIVE FROM"; text <=> Store.p-effective; placeholder: "YYYY-MM-DD"; }
+                            }
+                            Row {
+                                Field { label: "INPUT / 1M"; text <=> Store.p-input; }
+                                Field { label: "OUTPUT / 1M"; text <=> Store.p-output; }
+                            }
+                            Row {
+                                Field { label: "CACHE READ / 1M"; text <=> Store.p-cache-read; }
+                                Field { label: "CACHE WRITE / 1M"; text <=> Store.p-cache-write; }
+                            }
+                            Row {
+                                Field { label: "REASONING / 1M (0 = as output)"; text <=> Store.p-reasoning; }
+                                Field { label: "SOURCE"; text <=> Store.p-source; placeholder: "pricing page URL / invoice"; }
+                            }
+                        }
+                        CheckBox { text: "Estimated cost (e.g. local model energy / infrastructure)"; checked <=> Store.p-estimated; }
+                        VButton { text: "Add price version"; kind: "teal"; clicked => { Store.add-price(); } }
+                    }
+                }
+            }
+        }
+    }
+}

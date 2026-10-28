@@ -1,0 +1,25 @@
+# build output
+/target/
+/dist/
+
+# vaults, audit databases and their temp files - never commit real data
+*.kdbx
+*.kdbx.bak
+*.kdbx.tmp
+audit.db*
+
+# installers are published on bestin-it.com, not in the repository
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+__pycache__/

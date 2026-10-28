@@ -1,0 +1,91 @@
+[package]
+name = "llmvault"
+version = "0.1.0"
+edition = "2024"
+description = "LLM Vault - KeePass-compatible password manager with a built-in, policy-enforcing LLM gateway. AI agents can use models, never read the keys."
+license = "Apache-2.0"
+authors = ["Artur Poniedzialek / bestin-it.com"]
+homepage = "https://bestin-it.com/llm-vault/"
+repository = "https://github.com/bestin-it/llm-vault"
+readme = "README.md"
+keywords = ["keepass", "llm", "gateway", "secrets", "ai-agents"]
+categories = ["cryptography", "gui"]
+
+[lib]
+name = "llmvault"
+path = "src/lib.rs"
+
+[[bin]]
+name = "llmvault"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+arboard = "3.7.0"
+async-stream = "0.3.6"
+axum = "0.8.9"
+base64 = "0.23.1"
+bytes = "1.12.1"
+chrono = { version = "0.4.45", features = ["serde"] }
+directories = "6.0.0"
+futures-util = "0.3.34"
+hex = "0.4.3"
+image = { version = "0.25", default-features = false, features = ["png"] }
+keepass = { version = "0.17.0", features = ["save_kdbx4"] }
+open = "5.4.4"
+rand = "0.10.3"
+regex = "1.13.1"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "stream", "rustls", "http2"] }
+rfd = "0.17.2"
+rpassword = "7.5.4"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+rust-argon2 = "3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+slint = "1.18.1"
+subtle = "2.6.1"
+thiserror = "2.0.21"
+tokio = { version = "1.54.0", features = ["full"] }
+tokio-stream = "0.1.19"
+uuid = { version = "1.28.0", features = ["v4"] }
+zeroize = "1.9.1"
+
+[build-dependencies]
+slint-build = "1.18.1"
+winresource = "0.1.34"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true
+
+[package.metadata.deb]
+name = "llm-vault"
+maintainer = "bestin-it.com"
+section = "utils"
+priority = "optional"
+depends = "$auto, libfontconfig1, libxkbcommon0"
+extended-description = "KeePass-compatible (KDBX 4) password manager with a built-in, policy-enforcing LLM gateway. AI agents and scripts can call approved models; they never receive the provider keys."
+assets = [
+    ["target/release/llmvault", "usr/bin/", "755"],
+    ["target/release/llmvault-server", "usr/bin/", "755"],
+    ["packaging/linux/llm-vault.desktop", "usr/share/applications/", "644"],
+    ["assets/icon-256.png", "usr/share/icons/hicolor/256x256/apps/llm-vault.png", "644"],
+    ["README.md", "usr/share/doc/llm-vault/README.md", "644"],
+]
+
+[package.metadata.generate-rpm]
+name = "llm-vault"
+assets = [
+    { source = "target/release/llmvault", dest = "/usr/bin/llmvault", mode = "755" },
+    { source = "target/release/llmvault-server", dest = "/usr/bin/llmvault-server", mode = "755" },
+    { source = "packaging/linux/llm-vault.desktop", dest = "/usr/share/applications/llm-vault.desktop", mode = "644" },
+    { source = "assets/icon-256.png", dest = "/usr/share/icons/hicolor/256x256/apps/llm-vault.png", mode = "644" },
+]

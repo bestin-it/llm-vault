@@ -1,0 +1,7 @@
+Version 2.8.0
+- New: export invoices as PDF/A for archiving.
+- New: team members can be given read-only access to billing.
+- Changed: dashboard loads 3x faster thanks to cached aggregates.
+- Fixed: CSV export button did nothing in Firefox.
+- Fixed: webhook retries stopped after a 30-second timeout.
+- Security: session tokens now expire after 12 hours of inactivity.

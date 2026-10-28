@@ -1,0 +1,89 @@
+import { LineEdit, ComboBox, ListView } from "std-widgets.slint";
+import { Theme, VButton, Label, Pill, EmptyState, Card, SectionTitle } from "widgets.slint";
+import { Store } from "store.slint";
+import { RequestRow } from "dashboard.slint";
+
+component Tab inherits Rectangle {
+    in property <string> text;
+    in property <int> index;
+    height: 32px;
+    border-radius: 8px;
+    background: Store.activity-tab == index ? Theme.navy : ta.has-hover ? #e9eef6 : transparent;
+    ta := TouchArea { mouse-cursor: pointer; clicked => { Store.activity-tab = root.index; } }
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        Text { text: root.text; font-size: 12px; font-weight: 700; vertical-alignment: center; color: Store.activity-tab == root.index ? white : Theme.text; }
+    }
+}
+
+export component ActivityPage inherits Rectangle {
+    background: Theme.bg;
+    VerticalLayout {
+        padding: 18px;
+        spacing: 12px;
+        HorizontalLayout {
+            spacing: 8px;
+            SectionTitle {
+                title: "Activity & audit";
+                subtitle: "Every gateway request with its policy decision, token source and cost. Security events are kept separately.";
+            }
+            Rectangle { }
+            Tab { text: "Requests"; index: 0; }
+            Tab { text: "Security events"; index: 1; }
+        }
+        if Store.activity-tab == 0: Card {
+            VerticalLayout {
+                padding: 12px;
+                spacing: 10px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    ComboBox { width: 130px; model: ["Last 7 days", "Last 30 days", "Last 90 days", "Last 12 months", "All time"]; current-index <=> Store.f-period; selected => { Store.apply-filter(); } }
+                    ComboBox { width: 160px; model: Store.f-providers; current-index <=> Store.f-provider; selected => { Store.apply-filter(); } }
+                    ComboBox { width: 150px; model: Store.f-models; current-index <=> Store.f-model; selected => { Store.apply-filter(); } }
+                    ComboBox { width: 160px; model: Store.f-clients; current-index <=> Store.f-client; selected => { Store.apply-filter(); } }
+                    ComboBox { width: 120px; model: ["Any status", "Succeeded", "Errors", "Denied"]; current-index <=> Store.f-status; selected => { Store.apply-filter(); } }
+                    LineEdit { placeholder-text: "Search agent, project, error..."; text <=> Store.f-search; accepted => { Store.apply-filter(); } }
+                    VButton { text: "CSV"; kind: "secondary"; has-icon: true; icon: @image-url("icons/download.svg"); clicked => { Store.export-csv(); } }
+                    VButton { text: "JSON"; kind: "secondary"; has-icon: true; icon: @image-url("icons/download.svg"); clicked => { Store.export-json(); } }
+                }
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    spacing: 12px;
+                    Label { text: "TIME"; width: 118px; }
+                    Label { text: "MODEL / PROVIDER"; horizontal-stretch: 1; min-width: 120px; }
+                    Label { text: "CLIENT / AGENT"; horizontal-stretch: 1; min-width: 120px; }
+                    Label { text: "RESULT"; width: 96px; }
+                    Label { text: "CONSENT"; width: 78px; }
+                    Label { text: "TOKENS"; width: 110px; horizontal-alignment: right; }
+                    Label { text: "COST"; width: 90px; horizontal-alignment: right; }
+                }
+                if Store.requests.length == 0: EmptyState { title: "No requests match"; text: "Try a longer period or clear the filters."; }
+                ListView {
+                    for r in Store.requests: RequestRow { r: r; }
+                }
+            }
+        }
+        if Store.activity-tab == 1: Card {
+            VerticalLayout {
+                padding: 12px;
+                spacing: 6px;
+                if Store.events.length == 0: EmptyState { title: "No events"; text: "Unlocks, locks, consents and configuration changes appear here."; }
+                ListView {
+                    for e in Store.events: Rectangle {
+                        height: 38px;
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            spacing: 14px;
+                            Text { width: 170px; text: e.ts; font-size: 11px; color: Theme.muted; vertical-alignment: center; }
+                            VerticalLayout { width: 130px; alignment: center; Pill { text: e.kind; kind: e.kind == "unlock_failed" ? "bad" : e.kind == "lock" ? "dark" : "info"; } }
+                            Text { text: e.message; font-size: 12px; color: Theme.text; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+                        }
+                        Rectangle { y: parent.height - 1px; height: 1px; background: #edf1f7; }
+                    }
+                }
+            }
+        }
+    }
+}

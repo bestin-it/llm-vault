@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Vault Requirements</title>
+<meta name="description" content="Requirements specification for LLM Vault - a KeePass-compatible password manager with a secure, policy-enforcing LLM gateway.">
+<style>
+:root{
+  --navy:#0f1f3d;--navy2:#16294d;--teal:#14b8a6;--teal-soft:#e3f6f3;--blue:#2563eb;--blue-soft:#e8effd;
+  --amber:#a16207;--amber-soft:#fdf3e1;--red:#b42318;--red-soft:#fdecea;--green:#0f7a43;--green-soft:#e3f5ea;
+  --bg:#f3f6fb;--card:#fff;--border:#dfe6f0;--text:#0f1f3d;--muted:#5b6b85;--code:#0f1f3d;--code-text:#e6edf7;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1426;--card:#111d35;--border:#22335a;--text:#e6edf7;--muted:#9fb0cc;--teal-soft:#0f3a39;--blue-soft:#15284d;
+  --amber-soft:#3a2c0e;--red-soft:#3d1717;--green-soft:#0f3324;--code:#050b18;}}
+:root[data-theme="dark"]{--bg:#0b1426;--card:#111d35;--border:#22335a;--text:#e6edf7;--muted:#9fb0cc;--teal-soft:#0f3a39;--blue-soft:#15284d;--amber-soft:#3a2c0e;--red-soft:#3d1717;--green-soft:#0f3324;--code:#050b18;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+a{color:var(--blue)}
+.layout{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+nav{background:var(--navy);color:#c9d4e8;padding:24px 18px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .brand{color:#fff;font-weight:900;letter-spacing:1px;font-size:18px}
+nav .sub{color:#8fb3d9;font-size:12px;margin-bottom:20px}
+nav a{display:block;color:#c9d4e8;text-decoration:none;padding:5px 10px;border-radius:7px;font-size:13.5px}
+nav a:hover{background:var(--navy2);color:#fff}
+nav .grp{color:var(--teal);font-size:11px;font-weight:800;letter-spacing:.8px;margin:14px 10px 4px}
+main{padding:36px 44px;max-width:1180px}
+header.hero{background:var(--navy);color:#fff;border-radius:16px;padding:34px 36px;margin-bottom:28px;position:relative;overflow:hidden}
+header.hero:after{content:"";position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;background:#18315c}
+header.hero h1{margin:6px 0 8px;font-size:38px;letter-spacing:.5px;position:relative;z-index:1}
+header.hero p{max-width:760px;color:#c9d4e8;position:relative;z-index:1;margin:0}
+.chip{display:inline-block;background:var(--teal);color:var(--navy);font-weight:800;font-size:11px;border-radius:6px;padding:3px 10px;position:relative;z-index:1}
+.meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font-size:12.5px;color:#9fb6d6;position:relative;z-index:1}
+section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:22px}
+h2{margin:0 0 4px;font-size:22px}
+h2 .num{color:var(--teal);font-size:14px;font-weight:800;display:block;letter-spacing:.8px}
+h3{margin:22px 0 8px;font-size:16px}
+p.lead{color:var(--muted);margin-top:4px}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+th{background:var(--navy);color:#fff;text-align:left;padding:8px 10px;font-weight:700;font-size:12px;letter-spacing:.3px}
+th:first-child{border-top-left-radius:8px}th:last-child{border-top-right-radius:8px}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:color-mix(in srgb,var(--bg) 55%,transparent)}
+td.id{font-family:Consolas,monospace;font-size:12px;white-space:nowrap;color:var(--muted)}
+.st{display:inline-block;border-radius:10px;padding:1px 9px;font-size:11px;font-weight:700;white-space:nowrap}
+.done{background:var(--green-soft);color:var(--green)}.part{background:var(--amber-soft);color:var(--amber)}
+.plan{background:var(--blue-soft);color:var(--blue)}.out{background:var(--red-soft);color:var(--red)}
+.callout{border-radius:10px;padding:14px 16px;margin:14px 0;font-size:14px}
+.callout b{display:block;font-size:11px;letter-spacing:.8px;margin-bottom:4px}
+.c-teal{background:var(--teal-soft)}.c-amber{background:var(--amber-soft)}.c-red{background:var(--red-soft)}.c-blue{background:var(--blue-soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.box{border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.box h4{margin:0 0 6px}
+pre{background:var(--code);color:var(--code-text);border-radius:10px;padding:14px 16px;overflow:auto;font-size:12.5px}
+code{font-family:Consolas,"Cascadia Code",monospace;font-size:12.5px}
+.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+.flow .step{flex:1 1 150px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px}
+.flow .step b{display:block;color:var(--teal);font-size:12px}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.toggle{position:fixed;right:18px;top:14px;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:20px}
+@media (max-width:900px){.layout{grid-template-columns:1fr}nav{position:static;height:auto}main{padding:20px 16px}.grid2{grid-template-columns:1fr}table{display:block;overflow-x:auto}}
+@media print{nav,.toggle{display:none}.layout{display:block}section{break-inside:avoid}}
+</style>
+</head>
+<body>
+<button class="toggle" onclick="var r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark'">Theme</button>
+<div class="layout">
+<nav>
+  <div class="brand">LLM VAULT</div>
+  <div class="sub">Requirements specification · bestin-it.com</div>
+  <div class="grp">CONTEXT</div>
+  <a href="#overview">1. Overview</a>
+  <a href="#problem">2. Problem & gap</a>
+  <a href="#scope">3. Scope & decisions</a>
+  <a href="#architecture">4. Architecture</a>
+  <a href="#threats">5. Threat model</a>
+  <div class="grp">FUNCTIONAL</div>
+  <a href="#fr-profile">6. Profiles & sign-in</a>
+  <a href="#fr-vault">7. Vault / password manager</a>
+  <a href="#fr-gateway">8. LLM gateway</a>
+  <a href="#fr-policy">9. Policy & consent</a>
+  <a href="#fr-providers">10. Provider integrations</a>
+  <a href="#fr-pricing">11. Tokens & pricing</a>
+  <a href="#fr-analytics">12. Audit & analytics</a>
+  <a href="#fr-ui">13. Desktop UI</a>
+  <a href="#fr-clients">14. Client integrations</a>
+  <a href="#fr-install">15. Installation & updates</a>
+  <div class="grp">QUALITY</div>
+  <a href="#nfr">16. Non-functional</a>
+  <a href="#acceptance">17. Acceptance criteria</a>
+  <a href="#roadmap">18. Roadmap</a>
+  <a href="#glossary">19. Glossary & sources</a>
+</nav>
+<main>
+<header class="hero">
+  <span class="chip">IT LAB</span>
+  <h1>LLM Vault - Requirements</h1>
+  <p>A password manager with a built-in, secure LLM gateway. API keys stay in an encrypted vault; AI agents, VS Code and Python scripts can run approved model calls but never receive the secret values.</p>
+  <div class="meta"><span>Version 0.1 (prototype)</span><span>Date 2026-10-21</span><span>Source: concept v2 (PL) + product decisions</span><span>License: Apache-2.0</span></div>
+</header>
+
+<section>
+  <div class="legend">Status legend:
+    <span class="st done">Done</span> implemented and tested in v0.1
+    <span class="st part">Partial</span> implemented with limitations
+    <span class="st plan">Planned</span> next milestones
+    <span class="st out">Out of scope</span> deliberately excluded</div>
+</section>
+
+<section id="overview">
+  <h2><span class="num">01 / OVERVIEW</span>One product, two functions</h2>
+  <p class="lead">LLM Vault combines KeePass-style secret management with controlled execution of LLM requests.</p>
+  <div class="grid2">
+    <div class="box"><h4>Vault</h4>Encrypted entries (logins, passwords, API keys, notes), KDBX 4 import/export, user unlock, access policies, rotation.</div>
+    <div class="box"><h4>Gateway / broker</h4>API compatible with popular LLM protocols, calls to Foundry / OpenAI / Anthropic / local models, limits, consent and audit.</div>
+  </div>
+  <div class="callout c-teal"><b>VALUE PROPOSITION</b>"Use my permission to run an approved operation - but never show me the secret."</div>
+  <h3>Success metrics</h3>
+  <table><tr><th>Metric</th><th>Target</th><th>v0.1</th></tr>
+  <tr><td>Provider secrets exposed through the client API</td><td>0</td><td><span class="st done">0 - verified by 24 endpoint probes</span></td></tr>
+  <tr><td>Gateway calls with a recorded policy decision</td><td>100%</td><td><span class="st done">100% (allowed and denied)</span></td></tr>
+  <tr><td>Operating systems with installer and updates</td><td>3</td><td><span class="st part">Windows built & tested; macOS / Linux scripts + CI</span></td></tr>
+  </table>
+</section>
+
+<section id="problem">
+  <h2><span class="num">02 / PROBLEM</span>A real problem, not another chat</h2>
+  <p>Coding agents read repositories, run terminal commands and execute scripts. "The application may use the API" must not imply "the application may read the API key".</p>
+  <div class="flow">
+    <div class="step"><b>1</b>A developer runs an agent in VS Code; it can execute commands.</div>
+    <div class="step"><b>2</b>The provider key is in <code>.env</code>, an environment variable or a credential store.</div>
+    <div class="step"><b>3</b>The agent processes untrusted content (README, tool output, dependency).</div>
+    <div class="step"><b>4</b>The secret leaks to a log, a model response, a remote server or a file.</div>
+  </div>
+  <h3>Why current methods are not enough</h3>
+  <table><tr><th>Method</th><th>Provides</th><th>Does not solve</th></tr>
+  <tr><td>.env / environment variables</td><td>Convenient key delivery</td><td>Any process with file/process access can read it</td></tr>
+  <tr><td>Windows Credential Manager</td><td>System store instead of the repo</td><td>Code running as the user can request it</td></tr>
+  <tr><td>KeePass / KeePassXC</td><td>Encrypted database, password unlock</td><td>No control once the secret is handed out</td></tr>
+  <tr><td>Cloud Key Vault</td><td>Central secrets, RBAC, audit</td><td>Over-privileged agents can still fetch the secret</td></tr>
+  <tr><td>Plain LLM proxy</td><td>Hides the key behind an endpoint</td><td>Without authorization and isolation the endpoint is abused</td></tr>
+  </table>
+  <div class="callout c-blue"><b>REQUIRED MODEL CHANGE</b>Clients get only a controlled <code>invoke_model()</code> operation instead of <code>get_secret()</code>.</div>
+</section>
+
+<section id="scope">
+  <h2><span class="num">03 / SCOPE</span>Scope and product decisions</h2>
+  <table><tr><th>Decision</th><th>Choice</th><th>Rationale</th></tr>
+  <tr><td>Application type</td><td>Installable native desktop app (single exe), no web UI, no Python/JS runtime</td><td>Owner requirement; stable distribution; smaller attack surface</td></tr>
+  <tr><td>Language / UI</td><td>Rust + Slint; axum/tokio gateway; rustls</td><td>Memory safety, deterministic zeroization of secrets, ~36 MB binary</td></tr>
+  <tr><td>Vault format</td><td>KeePass KDBX 4.1</td><td>Proven format; interoperable with KeePass/KeePassXC</td></tr>
+  <tr><td>Admin plane</td><td>In-process only (no HTTP admin API)</td><td>Agents on localhost cannot reach configuration or secrets</td></tr>
+  <tr><td>Configuration storage</td><td>Inside the encrypted KDBX (meta custom data)</td><td>Prevents tampering, e.g. redirecting a provider URL to steal a key</td></tr>
+  <tr><td>Password recovery</td><td>None - change requires the current password; forgotten = delete the profile</td><td>No backdoor; zero-knowledge design</td></tr>
+  <tr><td>License</td><td>Apache-2.0, fully open source</td><td>Trust, auditability, community</td></tr>
+  <tr><td>Language</td><td>English UI and documentation</td><td>Global audience</td></tr>
+  </table>
+  <h3>Out of scope (v1)</h3>
+  <table><tr><th>Item</th><th>Status</th></tr>
+  <tr><td>Browser extension / auto-type</td><td><span class="st out">Out of scope</span></td></tr>
+  <tr><td>Observing GitHub Copilot's built-in models (separate auth path)</td><td><span class="st out">Out of scope</span> - reported separately</td></tr>
+  <tr><td>Bypassing or weakening EDR (e.g. Carbon Black)</td><td><span class="st out">Out of scope</span> - signed, reviewable releases instead</td></tr>
+  <tr><td>Mobile client</td><td><span class="st plan">Planned</span> (future stage)</td></tr>
+  </table>
+</section>
+
+<section id="architecture">
+  <h2><span class="num">04 / ARCHITECTURE</span>The trust boundary matters most</h2>
+  <div class="grid2">
+    <div class="box"><h4>Zone A - untrusted</h4>Copilot Chat & custom agents, Python scripts / CI, Claude Code, other IDEs. They hold only a client token.</div>
+    <div class="box"><h4>Zone B - protected LLM Vault process</h4>Policy engine (consent, allow-lists, limits, audit) · Secret broker (KDBX unlock, key use) · TLS egress to allowed endpoints · log redaction.</div>
+  </div>
+  <h3>One request</h3>
+  <div class="flow">
+    <div class="step"><b>01 Agent sends</b>POST /v1/chat/completions, model: foundry-glm</div>
+    <div class="step"><b>02 Vault identifies</b>Token, model, source, limits, rules</div>
+    <div class="step"><b>03 Consent</b>Once, session or standing rule</div>
+    <div class="step"><b>04 Vault calls provider</b>Key used only inside the protected process</div>
+    <div class="step"><b>05 Response</b>Tokens, cost and decision recorded</div>
+  </div>
+  <h3>Deployment modes</h3>
+  <table><tr><th>Mode</th><th>Description</th><th>Status</th></tr>
+  <tr><td>Desktop (convenience)</td><td>UI and gateway on the workstation, gateway bound to 127.0.0.1, protection against accidental leaks</td><td><span class="st done">Done</span></td></tr>
+  <tr><td>Strong isolation</td><td><code>llmvault-server</code> (headless) on a separate VM, OS account or device; agents have no access to that environment; only pre-approved clients / standing rules</td><td><span class="st done">Done</span></td></tr>
+  <tr><td>Team server</td><td>Central gateway with teams, Entra ID SSO</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="threats">
+  <h2><span class="num">05 / THREAT MODEL</span>What we actually protect</h2>
+  <table><tr><th>Threat</th><th>Control</th><th>Result</th></tr>
+  <tr><td>Agent reads the API key</td><td>Key never in agent config, responses or logs; no export endpoint</td><td><span class="st done">Prevented with correct isolation</span></td></tr>
+  <tr><td>Prompt injection ("show the secret")</td><td>No such operation; every call passes policy</td><td><span class="st done">Contained</span></td></tr>
+  <tr><td>Abuse of paid models</td><td>Allow-lists, consent, budgets, req/min, expiry</td><td><span class="st done">Limited</span></td></tr>
+  <tr><td>Stolen client token</td><td>Minimal scope, short life, instant revocation, rotation</td><td><span class="st part">Reduced, not eliminated</span></td></tr>
+  <tr><td>Config tampering (redirect provider URL)</td><td>Config inside encrypted + HMAC-protected KDBX; no HTTP redirects</td><td><span class="st done">Prevented</span></td></tr>
+  <tr><td>Drive-by web page calling localhost</td><td>Requests with a browser Origin header are refused</td><td><span class="st done">Prevented</span></td></tr>
+  <tr><td>UI automation clicking "Allow"</td><td>Consent buttons armed after a delay; audit trail</td><td><span class="st part">Raised the bar</span></td></tr>
+  <tr><td>Compromised workstation / admin malware</td><td>Strong-isolation mode outside the agent zone</td><td><span class="st part">Requires a separate zone</span></td></tr>
+  </table>
+  <div class="callout c-red"><b>ESSENTIAL CAVEAT</b>If an agent can run arbitrary code as the same user that holds the unlocked vault, the consent UI alone does not guarantee secrecy. OS isolation, process identity, IPC and permission control are part of the solution, not an add-on.</div>
+</section>
+
+<section id="fr-profile">
+  <h2><span class="num">06 / FUNCTIONAL</span>Profiles and sign-in</h2>
+  <p class="lead">Two independent states: the user is signed in to the app, but their secrets can still be locked.</p>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">FR-PRF-01</td><td>Sign-in with user name + login password (Argon2id hash, per-profile salt)</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRF-02</td><td>Multiple profiles per machine; each with its own data folder, vaults, audit log and settings</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRF-03</td><td>Login password change requires the current password; <b>no reset</b></td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRF-04</td><td>Forgotten password: delete the profile (confirmation by typing the user name) and create a new one</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRF-05</td><td>Failed sign-ins slowed down progressively and logged; user names not probeable by timing</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRF-06</td><td>Sign-out locks the vault and stops the gateway</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRF-07</td><td>Roles: vault owner, policy administrator, API client/agent, auditor (read-only metrics)</td><td><span class="st plan">Planned</span> - v0.1 has owner + clients</td></tr>
+  <tr><td class="id">FR-PRF-08</td><td>Optional OS biometrics (Windows Hello / Touch ID) for unlock</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="fr-vault">
+  <h2><span class="num">07 / FUNCTIONAL</span>Vault and password manager</h2>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">FR-VLT-01</td><td>Create / open KDBX 4.1 vaults; master password and optional key file</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-02</td><td>KeePass-grade storage: AES-256 outer cipher, Argon2id KDF (64 MiB), ChaCha20 protected fields, HMAC-SHA-256 blocks</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-03</td><td>Groups, entries (title, user name, password, URL, notes, tags, expiry), search</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-04</td><td>Store keys, passwords and logins for other applications, not only LLM keys</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-05</td><td>Password generator (length, classes) and strength meter</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-06</td><td>Copy to clipboard with auto-clear; excluded from Windows clipboard history / cloud sync</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-07</td><td>Atomic save with previous version kept as .bak</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-08</td><td>Import entries from other KeePass databases; save encrypted backup copy</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-09</td><td>Lock manually, on sign-out, on app exit and after inactivity (auto-lock)</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-VLT-10</td><td>Provider keys in a managed group; rotation reminders and forced rotation policy</td><td><span class="st part">Partial</span> - rotation by editing; reminders planned</td></tr>
+  <tr><td class="id">FR-VLT-11</td><td>Detect external modification of the KDBX file and merge</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td class="id">FR-VLT-12</td><td>TOTP codes, attachments, entry history UI</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="fr-gateway">
+  <h2><span class="num">08 / FUNCTIONAL</span>LLM gateway</h2>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">FR-GW-01</td><td>OpenAI Chat Completions <code>/v1/chat/completions</code> incl. streaming (SSE) and tool calls</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-02</td><td>Anthropic Messages <code>/v1/messages</code> (Claude Code, Anthropic SDK) incl. streaming</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-03</td><td>Translation OpenAI ⇄ Anthropic (system, tools, tool results, images, usage)</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-04</td><td><code>/v1/models</code> lists only aliases the token may use; <code>/v1/embeddings</code></td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-05</td><td>No endpoint returns keys, passwords, entries or configuration</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-06</td><td>Model aliases map to provider + upstream model; upstream names never leak to clients</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-07</td><td>Locked vault ⇒ HTTP 423 for every call</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-08</td><td>Clear JSON errors (401/403/404/423/429/502) with codes</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-09</td><td>Agent / project labels from headers (<code>X-LLMVault-Agent</code>, <code>X-LLMVault-Project</code>)</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-GW-10</td><td>OpenAI Responses API (<code>/v1/responses</code>)</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td class="id">FR-GW-11</td><td>Routing: virtual models with failover / round-robin / cost-based strategies, retries with backoff, circuit breakers</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td class="id">FR-GW-12</td><td>Exact and semantic response caching (opt-in)</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td class="id">FR-GW-13</td><td>Audio / image endpoints; MCP gateway; native passthrough</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="fr-policy">
+  <h2><span class="num">09 / FUNCTIONAL</span>Policy and consent</h2>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">FR-POL-01</td><td>Client tokens: shown once, stored as SHA-256, prefix for recognition, constant-time lookup</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-POL-02</td><td>Per-client allowed models, expiry (1h…90d), revocation, rotation</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-POL-03</td><td>Consent modes: ask every time, ask once per session, pre-approved</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-POL-04</td><td>Consent dialog: Deny / Allow once / Allow for session / Always allow; timeout ⇒ deny; arming delay</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-POL-05</td><td>Revoke session grants and standing rules at any time</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-POL-06</td><td>Daily and monthly budgets (USD) and requests/minute per client</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-POL-07</td><td>Token-per-minute and concurrency limits; per-provider budgets; spend alerts</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td class="id">FR-POL-08</td><td>Guardrails on requests/responses (PII, secrets in prompts)</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="fr-providers">
+  <h2><span class="num">10 / FUNCTIONAL</span>Provider integrations</h2>
+  <p class="lead">Catalog with one-click setup, model discovery and connection test. Keys go straight into the vault. Egress: HTTPS only (HTTP for loopback or explicit LAN opt-in), no redirects. Coverage includes the providers supported by GoModel (ENTERPILOT).</p>
+  <table><tr><th>Provider</th><th>API</th><th>Status</th></tr>
+  <tr><td>Ollama (local) · Ollama Cloud (ollama.com)</td><td>OpenAI-compatible /v1, native /api/tags, Anthropic /v1/messages</td><td><span class="st done">Done · live-tested</span></td></tr>
+  <tr><td>llama.cpp (llama-server)</td><td>OpenAI-compatible</td><td><span class="st done">Done · live-tested</span></td></tr>
+  <tr><td>LM Studio</td><td>OpenAI-compatible</td><td><span class="st done">Done</span> (same API as llama.cpp; live run pending on the test machine)</td></tr>
+  <tr><td>vLLM · SGLang · llm-d · any OpenAI-compatible server</td><td>OpenAI-compatible</td><td><span class="st done">Done</span></td></tr>
+  <tr><td>OpenAI · Azure AI Foundry (v1) · Azure OpenAI (deployments)</td><td>OpenAI / api-key header</td><td><span class="st done">Done</span></td></tr>
+  <tr><td>Anthropic</td><td>Messages API (native + translation)</td><td><span class="st done">Done</span></td></tr>
+  <tr><td>Google Gemini</td><td>OpenAI-compatible endpoint</td><td><span class="st done">Done</span>; native generateContent <span class="st plan">Planned</span></td></tr>
+  <tr><td>OpenRouter · Groq · Mistral · DeepSeek · xAI · Together · Fireworks · Cerebras · Perplexity · Hugging Face</td><td>OpenAI-compatible</td><td><span class="st done">Done</span></td></tr>
+  <tr><td>Cohere · Z.ai (+ GLM Coding Plan) · Alibaba Model Studio · MiniMax · Xiaomi MiMo · Moonshot / Kimi Code · Chutes · Kilo · Eden AI · OpenCode Zen · Meta Llama API · Oracle OCI GenAI · Amazon Bedrock (OpenAI-compatible, API key)</td><td>OpenAI-compatible</td><td><span class="st done">Done</span> (catalog presets; verify region URLs)</td></tr>
+  <tr><td>Google Vertex AI</td><td>OAuth / ADC, service account</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td>Amazon Bedrock Runtime / Mantle</td><td>AWS SigV4 credential chain</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td>ElevenLabs · audio.cpp · Xiaomi audio</td><td>Audio (TTS/STT)</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td>Jev / Kev decisions API</td><td>Native decisions</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td>ChatGPT subscription (Codex token)</td><td>Responses-only, plan quota</td><td><span class="st out">Out of scope</span> - consumer token, ToS risk</td></tr>
+  <tr><td>Multiple keys per provider with rotation; per-provider health status</td><td>-</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="fr-pricing">
+  <h2><span class="num">11 / FUNCTIONAL</span>Tokens and custom price lists</h2>
+  <div class="callout c-blue"><b>COST FORMULA</b>cost = input_uncached × P_in / 1M + output × P_out / 1M + cached_read × P_cache_read / 1M + cache_write × P_cache_write / 1M (+ reasoning when priced separately)</div>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">FR-PRC-01</td><td>Versioned price per model alias: input, output, cache read/write, reasoning; currency, effective date, source</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRC-02</td><td>Usage source flag: reported / estimated / unavailable - never mixed</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRC-03</td><td>Calculated cost, estimate and invoice are three different concepts; local models = estimated infrastructure cost</td><td><span class="st part">Partial</span> - invoice reconciliation planned</td></tr>
+  <tr><td class="id">FR-PRC-04</td><td>USD/EUR/PLN with dated, sourced exchange rates; historical prices unchanged</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRC-05</td><td>Each request stores the price version used, so it can be re-costed</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-PRC-06</td><td>Import provider price catalogs automatically</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="fr-analytics">
+  <h2><span class="num">12 / FUNCTIONAL</span>Audit and analytics</h2>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">FR-AUD-01</td><td>Every request: id, time, client, agent, project, model, provider, decision + reason, consent type, status, latency, tokens, usage source, cost, price version</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-AUD-02</td><td>No prompts, responses or secrets in the audit log; redaction of keys (full and partially echoed)</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-AUD-03</td><td>Security events: sign-in, failed sign-in, unlock, lock, consent, client/provider changes, password copy</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-ANA-01</td><td>Dashboard: calls (ok / errors / denied), tokens, cost, latency avg/p95, cost by provider, daily trend, top models and agents, recent calls, vault status</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-ANA-02</td><td>Filters: period, provider, model, client, status, text; export CSV (formula-injection safe) and JSON</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-ANA-03</td><td>Alerts: spend spikes, output-token surges, 429/5xx rates, anomalies; XLSX reports</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td class="id">FR-ANA-04</td><td>Tamper-evident audit (hash chain); Prometheus / OpenTelemetry export</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td class="id">FR-ANA-05</td><td>Import GitHub Copilot Enterprise usage as a separate source</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="fr-ui">
+  <h2><span class="num">13 / FUNCTIONAL</span>Desktop UI</h2>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">FR-UI-01</td><td>Screens: sign-in / profile, unlock / create vault, Dashboard, Passwords, Providers (catalog), Models & pricing, Clients & agents, Consents, Activity (requests + security events), Settings</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-UI-02</td><td>Consent prompt on top of everything; window restored when a request arrives</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-UI-03</td><td>Token dialog with ready snippets: Python, env vars, Claude Code, VS Code Copilot Custom Endpoint, curl</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-UI-04</td><td>Demo mode with synthetic data (isolated folder) for evaluation and screenshots</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-UI-05</td><td>System tray, desktop notifications, dark theme, keyboard shortcuts, localization</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="fr-clients">
+  <h2><span class="num">14 / FUNCTIONAL</span>Client integrations</h2>
+  <p class="lead">Agents keep their workflow - only the endpoint and the credential change.</p>
+  <table><tr><th>Client</th><th>How</th><th>Status</th></tr>
+  <tr><td>VS Code GitHub Copilot Chat (incl. agent mode and <code>.github/agents/*.agent.md</code>)</td><td>Manage Language Models → Custom Endpoint, API type Chat Completions, URL <code>http://127.0.0.1:8765/v1/chat/completions</code>, key = client token, <code>toolCalling: true</code>. Business/Enterprise: policy "Bring Your Own Language Model Key in VS Code".</td><td><span class="st done">Done</span> (protocol + tool-call streaming verified)</td></tr>
+  <tr><td>Claude Code</td><td><code>ANTHROPIC_BASE_URL</code> + <code>ANTHROPIC_AUTH_TOKEN</code> = client token</td><td><span class="st done">Done</span></td></tr>
+  <tr><td>Python (openai / anthropic SDK), curl, CI</td><td>base_url + client token</td><td><span class="st done">Done</span></td></tr>
+  <tr><td>Continue, Cline, Open WebUI and other OpenAI-compatible tools</td><td>OpenAI-compatible base URL</td><td><span class="st done">Done</span></td></tr>
+  </table>
+<pre><code>[{ "name": "LLM Vault", "vendor": "customendpoint", "apiKey": "${input:llmVaultToken}",
+   "apiType": "chat-completions",
+   "models": [{ "id": "foundry-glm", "name": "foundry-glm (LLM Vault)",
+                "url": "http://127.0.0.1:8765/v1/chat/completions",
+                "toolCalling": true, "maxInputTokens": 128000, "maxOutputTokens": 16000 }] }]</code></pre>
+</section>
+
+<section id="fr-install">
+  <h2><span class="num">15 / FUNCTIONAL</span>Installation, signing and updates</h2>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">FR-INS-01</td><td>Windows 11: per-user installer (no admin) into <code>%LOCALAPPDATA%\Programs\LLM Vault</code>; portable ZIP</td><td><span class="st done">Done</span> - Inno Setup, install/uninstall tested</td></tr>
+  <tr><td class="id">FR-INS-02</td><td>Uninstall removes the app; user data only after an explicit choice</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-INS-03</td><td>macOS: universal .app + DMG, hardened runtime, Developer ID signing, notarization</td><td><span class="st part">Partial</span> - script + CI, needs Apple certificate</td></tr>
+  <tr><td class="id">FR-INS-04</td><td>Linux: AppImage, .deb, .rpm; GPG-signed checksums</td><td><span class="st part">Partial</span> - script + CI</td></tr>
+  <tr><td class="id">FR-INS-05</td><td>Authenticode signing with timestamp and stable publisher (optionally Microsoft Artifact Signing)</td><td><span class="st part">Partial</span> - hooks ready, certificate needed</td></tr>
+  <tr><td class="id">FR-INS-06</td><td>Settings never contain plaintext keys; no Docker required</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">FR-INS-07</td><td>Signed update manifests, staged rollout, stable/beta channels, rollback; never unsigned auto-update</td><td><span class="st plan">Planned</span></td></tr>
+  <tr><td class="id">FR-INS-08</td><td>EDR pilot (e.g. Carbon Black): publisher identity, hashes, SBOM, network description, false-positive procedure</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="nfr">
+  <h2><span class="num">16 / QUALITY</span>Non-functional requirements</h2>
+  <table><tr><th>ID</th><th>Requirement</th><th>Status</th></tr>
+  <tr><td class="id">NFR-SEC-01</td><td>Secrets zeroized on drop; held only while unlocked</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">NFR-SEC-02</td><td>Gateway bound to loopback by default; browser-origin requests refused</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">NFR-SEC-03</td><td>Outbound TLS via rustls, no redirects, HTTPS enforced for remote hosts</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">NFR-SEC-04</td><td>Leak tests in the automated test suite</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">NFR-SEC-05</td><td>Broker in a separate process / identity on the desktop; IPC and network restrictions; penetration test</td><td><span class="st plan">Planned</span> (M3 hardening)</td></tr>
+  <tr><td class="id">NFR-PERF-01</td><td>Gateway overhead negligible vs model latency</td><td><span class="st done">Measured 7-42 ms</span></td></tr>
+  <tr><td class="id">NFR-PORT-01</td><td>Windows 11, macOS 11+, Linux (X11/Wayland) from one code base</td><td><span class="st part">Partial</span> - Windows verified</td></tr>
+  <tr><td class="id">NFR-PRIV-01</td><td>No telemetry; no prompts stored; data stays on the machine</td><td><span class="st done">Done</span></td></tr>
+  <tr><td class="id">NFR-OSS-01</td><td>Apache-2.0; third-party licenses listed; reproducible CI builds</td><td><span class="st done">Done</span></td></tr>
+  </table>
+</section>
+
+<section id="acceptance">
+  <h2><span class="num">17 / ACCEPTANCE</span>Acceptance criteria and definition of done</h2>
+  <table><tr><th>Criterion</th><th>Evidence</th><th>Status</th></tr>
+  <tr><td>The agent has no API or command to fetch a secret</td><td><code>no_endpoint_returns_a_secret</code> (24 probes)</td><td><span class="st done">Pass</span></td></tr>
+  <tr><td>Unauthorized requests are rejected; consent can be revoked</td><td><code>unauthorized_requests_are_rejected</code>, <code>revoked_token_is_rejected</code>, <code>consent_deny_once_session</code>, <code>consent_timeout_denies</code></td><td><span class="st done">Pass</span></td></tr>
+  <tr><td>Locking the vault invalidates access to protected secrets</td><td><code>locking_the_vault_blocks_the_gateway</code></td><td><span class="st done">Pass</span></td></tr>
+  <tr><td>Errors and logs do not reveal keys; leak tests exist</td><td><code>upstream_errors_and_audit_never_contain_the_key</code>, redaction unit tests</td><td><span class="st done">Pass</span></td></tr>
+  <tr><td>Every request has an id, a policy decision and a token source</td><td>audit schema + <code>allowed_request_works_counts_tokens_and_cost</code></td><td><span class="st done">Pass</span></td></tr>
+  <tr><td>Billing for a historical request can be reproduced from its price version</td><td>price_id stored per request; <code>picks_price_version_by_date</code></td><td><span class="st done">Pass</span></td></tr>
+  <tr><td>Vault file is standard KeePass</td><td>opened with an independent KDBX implementation: KDBX 4.1 / AES-256 / Argon2id</td><td><span class="st done">Pass</span></td></tr>
+  <tr><td>Installer and binaries are signed; rollout approved by IT/EDR</td><td>signing hooks in build scripts</td><td><span class="st part">Needs certificates</span></td></tr>
+  </table>
+</section>
+
+<section id="roadmap">
+  <h2><span class="num">18 / ROADMAP</span>Milestones</h2>
+  <table><tr><th>Milestone</th><th>Content</th><th>Status</th></tr>
+  <tr><td>M1 - Vault + Gateway</td><td>Encrypted entries, sign-in, consent, provider calls, Python client, VS Code custom endpoint</td><td><span class="st done">Done (v0.1)</span></td></tr>
+  <tr><td>M2 - Analytics</td><td>Price model, input/output/cache, usage + estimates, price versions, cost per provider/model/agent/project, dashboard</td><td><span class="st done">Done (v0.1)</span></td></tr>
+  <tr><td>M3 - Hardening</td><td>Broker isolation, roles, token/concurrency limits, threat-model review, prompt-injection and escalation tests, hash-chained audit</td><td><span class="st plan">Next</span></td></tr>
+  <tr><td>M4 - Distribution</td><td>Signed Windows/macOS/Linux releases, notarization, signed auto-update, EDR pilot</td><td><span class="st part">In progress</span></td></tr>
+  <tr><td>M5 - Product growth</td><td>Responses API, routing & failover, caching, Vertex AI / Bedrock SigV4, MCP gateway, teams, Entra ID SSO, server deployment, XLSX reports, mobile client</td><td><span class="st plan">Planned</span></td></tr>
+  </table>
+</section>
+
+<section id="glossary">
+  <h2><span class="num">19 / REFERENCE</span>Glossary and sources</h2>
+  <table><tr><th>Term</th><th>Meaning</th></tr>
+  <tr><td>Client token</td><td>Permission to call the gateway (<code>lvk_…</code>); not a provider key; scoped, expiring, revocable</td></tr>
+  <tr><td>Model alias</td><td>Name a client sends as <code>model</code>; mapped by the vault to provider + upstream model</td></tr>
+  <tr><td>Session grant</td><td>Consent valid until the vault is locked</td></tr>
+  <tr><td>Standing rule</td><td>"Always allow" consent for a client + model until revoked</td></tr>
+  <tr><td>Strong isolation</td><td>Gateway and vault outside the agent's OS account / machine</td></tr>
+  </table>
+  <h3>Sources</h3>
+  <ul>
+    <li>LLM Vault concept v2 (bestin-it.com, 2026-10-20)</li>
+    <li>OWASP Top 10 for LLM Applications - LLM01 Prompt Injection</li>
+    <li>VS Code docs - Language models, Custom Endpoint provider (BYOK)</li>
+    <li>GoModel (ENTERPILOT) - provider coverage reference</li>
+    <li>KeePass KDBX 4 format; Slint, Tauri/Rust cross-platform signing guides; Microsoft SmartScreen reputation</li>
+  </ul>
+</section>
+<footer>LLM Vault · Apache-2.0 · bestin-it.com · generated 2026-10-21</footer>
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+name: Feature or provider request
+description: A new integration, client snippet or feature
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to do?
+      description: The situation and the tool or provider involved - not only the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: API details (for a provider)
+      description: Base URL, auth scheme and whether it is OpenAI-compatible.

@@ -1,0 +1,208 @@
+import { LineEdit, CheckBox, ScrollView, ListView, Switch } from "std-widgets.slint";
+import { Theme, VButton, IconButton, Field, Label, Pill, EmptyState, Card, SectionTitle, Modal } from "widgets.slint";
+import { Store } from "store.slint";
+
+component CategoryChip inherits Rectangle {
+    in property <string> text;
+    height: 28px;
+    border-radius: 14px;
+    background: Store.catalog-filter == text ? Theme.navy : ta.has-hover ? #e9eef6 : Theme.card;
+    border-width: 1px;
+    border-color: Store.catalog-filter == text ? Theme.navy : Theme.border;
+    ta := TouchArea { mouse-cursor: pointer; clicked => { Store.catalog-filter = root.text; Store.catalog-changed(); } }
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        Text { text: root.text; font-size: 12px; font-weight: 600; vertical-alignment: center; color: Store.catalog-filter == root.text ? white : Theme.text; }
+    }
+}
+
+export component ProvidersPage inherits Rectangle {
+    background: Theme.bg;
+    ScrollView {
+        VerticalLayout {
+            alignment: start;
+            padding: 24px;
+            spacing: 16px;
+            HorizontalLayout {
+                SectionTitle {
+                    title: "Provider connections";
+                    subtitle: "API keys are stored in the vault's 'LLM Providers' group and are only ever used inside the gateway's outbound TLS request.";
+                }
+                Rectangle { }
+                VButton {
+                    text: "Detect local servers";
+                    kind: "secondary";
+                    has-icon: true;
+                    icon: @image-url("icons/search.svg");
+                    clicked => { Store.detect-local(); }
+                }
+            }
+            if Store.providers.length == 0: Card {
+                height: 110px;
+                EmptyState {
+                    title: "No providers connected";
+                    text: "Pick an integration below - e.g. Ollama (local) needs no key, Ollama Cloud, OpenAI, Azure AI Foundry or Anthropic need an API key.";
+                }
+            }
+            for p in Store.providers: Card {
+                height: 74px;
+                HorizontalLayout {
+                    padding: 14px;
+                    spacing: 14px;
+                    Rectangle {
+                        width: 40px;
+                        height: 40px;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 10px;
+                        background: p.enabled ? Theme.teal-soft : #eef1f5;
+                        Image { source: @image-url("icons/server.svg"); width: 20px; height: 20px; colorize: p.enabled ? Theme.teal-dark : Theme.faint; }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        horizontal-stretch: 1;
+                        spacing: 2px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Text { text: p.name; font-size: 14px; font-weight: 800; color: Theme.text; vertical-alignment: center; }
+                            Pill { text: p.kind; }
+                            Pill { text: p.has-key ? "key in vault" : "no key"; kind: p.has-key ? "ok" : "neutral"; }
+                            Pill { text: p.models + " model(s)"; kind: "info"; }
+                        }
+                        Text { text: p.base-url; font-size: 11px; color: Theme.muted; overflow: elide; }
+                        if p.status != "": Text { text: p.status; font-size: 11px; color: p.status-ok ? Theme.green : Theme.red; overflow: elide; }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Switch {
+                                checked: p.enabled;
+                                toggled => { Store.toggle-provider(p.id, self.checked); }
+                            }
+                            VButton { text: "Test"; kind: "secondary"; compact: true; clicked => { Store.test-provider(p.id); } }
+                            VButton { text: "Discover models"; kind: "secondary"; compact: true; clicked => { Store.discover-models(p.id); } }
+                            VButton { text: "Edit"; kind: "secondary"; compact: true; clicked => { Store.edit-provider(p.id); } }
+                            IconButton { icon: @image-url("icons/trash.svg"); tint: Theme.red; clicked => { Store.delete-provider(p.id); } }
+                        }
+                    }
+                }
+            }
+
+            SectionTitle {
+                title: "Add an integration";
+                subtitle: "Local runtimes, cloud APIs, routers and enterprise endpoints. Anything OpenAI-compatible works via 'Custom'.";
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                CategoryChip { text: "All"; }
+                CategoryChip { text: "Local"; }
+                CategoryChip { text: "Cloud"; }
+                CategoryChip { text: "Router"; }
+                CategoryChip { text: "Enterprise"; }
+                CategoryChip { text: "Coding plan"; }
+            }
+            // catalog grid: 3 columns, positioned manually (presets are pre-filtered in Rust)
+            grid := Rectangle {
+                property <length> cw: (self.width - 24px) / 3;
+                height: Math.ceil(Store.presets.length / 3) * 162px;
+                for pr[i] in Store.presets: Rectangle {
+                    x: Math.mod(i, 3) * (grid.cw + 12px);
+                    y: Math.floor(i / 3) * 162px;
+                    width: grid.cw;
+                    height: 150px;
+                    background: Theme.card;
+                    border-radius: Theme.r;
+                    border-width: 1px;
+                    border-color: cta.has-hover ? Theme.teal : Theme.border;
+                    cta := TouchArea { mouse-cursor: pointer; clicked => { Store.open-preset(pr.id); } }
+                    VerticalLayout {
+                        padding: 14px;
+                        spacing: 6px;
+                        HorizontalLayout {
+                            spacing: 6px;
+                            Text { text: pr.name; font-size: 14px; font-weight: 800; color: Theme.text; overflow: elide; horizontal-stretch: 1; }
+                            Pill { text: pr.category; kind: pr.category == "Local" ? "ok" : pr.category == "Enterprise" ? "dark" : pr.category == "Coding plan" ? "warn" : "info"; }
+                        }
+                        Text { text: pr.description; font-size: 11px; color: Theme.muted; wrap: word-wrap; vertical-stretch: 1; }
+                        HorizontalLayout {
+                            Text { text: pr.needs-key ? "API key required" : "No key needed"; font-size: 10px; font-weight: 700; color: pr.needs-key ? Theme.amber : Theme.green; vertical-alignment: center; }
+                            Rectangle { }
+                            VButton { text: "Connect"; compact: true; kind: "teal"; clicked => { Store.open-preset(pr.id); } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component ProviderDialog inherits Modal {
+    title: Store.pd-id == "" ? "Connect " + Store.pd-name : "Edit " + Store.pd-name;
+    panel-width: 560px;
+    close => { Store.provider-dialog = false; Store.pd-key = ""; }
+    Field { label: "DISPLAY NAME"; text <=> Store.pd-name; }
+    Field { label: "BASE URL"; text <=> Store.pd-base-url; }
+    if Store.pd-kind == "azure_openai": Field { label: "API VERSION"; text <=> Store.pd-api-version; placeholder: "2024-10-21"; }
+    VerticalLayout {
+        spacing: 4px;
+        Label { text: Store.pd-needs-key ? "API KEY (stored encrypted in the vault)" : "API KEY (optional)"; }
+        LineEdit {
+            text <=> Store.pd-key;
+            input-type: InputType.password;
+            placeholder-text: Store.pd-id != "" ? "leave empty to keep the current key" : "paste the key here";
+        }
+        HorizontalLayout {
+            spacing: 6px;
+            Text { text: "The key can be written but is never displayed or exported through the gateway."; font-size: 11px; color: Theme.muted; wrap: word-wrap; horizontal-stretch: 1; }
+            if Store.pd-key-url != "": VButton {
+                text: "Get a key";
+                compact: true;
+                kind: "secondary";
+                has-icon: true;
+                icon: @image-url("icons/external.svg");
+                clicked => { Store.open-url(Store.pd-key-url); }
+            }
+        }
+    }
+    CheckBox { text: "Allow plain HTTP for a LAN host (HTTPS is required otherwise; localhost is always allowed)"; checked <=> Store.pd-allow-http; }
+    if Store.pd-examples != "": Text { text: "Example models: " + Store.pd-examples; font-size: 11px; color: Theme.faint; wrap: word-wrap; }
+    HorizontalLayout {
+        spacing: 8px;
+        Rectangle { }
+        VButton { text: "Cancel"; kind: "secondary"; clicked => { Store.provider-dialog = false; Store.pd-key = ""; } }
+        VButton { text: "Save connection"; kind: "primary"; clicked => { Store.save-provider(); } }
+    }
+}
+
+export component DiscoverDialog inherits Modal {
+    title: "Discover models";
+    panel-width: 620px;
+    close => { Store.discover-dialog = false; }
+    Text { text: Store.discover-status; font-size: 12px; color: Theme.muted; wrap: word-wrap; }
+    Rectangle {
+        height: min(360px, max(60px, Store.discovered.length * 32px));
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        ListView {
+            for m[i] in Store.discovered: HorizontalLayout {
+                padding-left: 10px;
+                height: 32px;
+                CheckBox {
+                    text: m.name;
+                    checked: m.checked;
+                    toggled => { Store.discovered[i].checked = self.checked; }
+                }
+            }
+        }
+    }
+    Text { text: "Selected models become aliases (you can rename them and set prices on the Models & Pricing page)."; font-size: 11px; color: Theme.faint; wrap: word-wrap; }
+    HorizontalLayout {
+        spacing: 8px;
+        Rectangle { }
+        VButton { text: "Close"; kind: "secondary"; clicked => { Store.discover-dialog = false; } }
+        VButton { text: "Add selected as aliases"; kind: "primary"; enabled: Store.discovered.length > 0; clicked => { Store.import-discovered(); } }
+    }
+}

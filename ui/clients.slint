@@ -1,0 +1,156 @@
+import { LineEdit, ComboBox, ListView, ScrollView, TextEdit } from "std-widgets.slint";
+import { Theme, VButton, IconButton, Field, Label, Pill, EmptyState, Card, SectionTitle, Modal } from "widgets.slint";
+import { Store } from "store.slint";
+
+export component ClientsPage inherits Rectangle {
+    background: Theme.bg;
+    HorizontalLayout {
+        padding: 18px;
+        spacing: 14px;
+        Card {
+            horizontal-stretch: 1;
+            VerticalLayout {
+                padding: 14px;
+                spacing: 10px;
+                SectionTitle {
+                    title: "Clients & agents";
+                    subtitle: "A client token is a permission to call the gateway - not a provider key. Keep it scoped, short-lived and revocable.";
+                }
+                if Store.clients.length == 0: EmptyState {
+                    title: "No clients yet";
+                    text: "Create a token for each agent, IDE or script (e.g. 'VS Code - Code Reviewer', 'Python batch').";
+                }
+                ListView {
+                    for c in Store.clients: Rectangle {
+                        height: 66px;
+                        border-radius: 8px;
+                        background: cta.has-hover ? Theme.subtle : transparent;
+                        cta := TouchArea { }
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 8px;
+                            spacing: 10px;
+                            Rectangle {
+                                width: 34px;
+                                height: 34px;
+                                y: (parent.height - self.height) / 2;
+                                border-radius: 17px;
+                                background: c.revoked || c.expired ? #eef1f5 : Theme.blue-soft;
+                                Image { source: @image-url("icons/users.svg"); width: 16px; height: 16px; colorize: c.revoked || c.expired ? Theme.faint : Theme.blue; }
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                horizontal-stretch: 1;
+                                spacing: 1px;
+                                HorizontalLayout {
+                                    spacing: 6px;
+                                    Text { text: c.name; font-size: 13px; font-weight: 800; color: Theme.text; vertical-alignment: center; }
+                                    Pill { text: c.mode; kind: c.mode == "pre-approved" ? "warn" : "info"; }
+                                    if c.revoked: Pill { text: "revoked"; kind: "bad"; }
+                                    if c.expired && !c.revoked: Pill { text: "expired"; kind: "bad"; }
+                                }
+                                Text { text: c.prefix + "…  ·  " + (c.project != "" ? c.project + "  ·  " : "") + "models: " + c.models; font-size: 11px; color: Theme.muted; overflow: elide; }
+                                Text { text: "expires " + c.expires + "  ·  " + c.limits + "  ·  last used " + c.last-used + "  ·  spent today " + c.spent; font-size: 10px; color: Theme.faint; overflow: elide; }
+                            }
+                            if !c.revoked: VButton { y: (parent.height - self.height) / 2; text: "Rotate"; kind: "secondary"; compact: true; clicked => { Store.rotate-client(c.id); } }
+                            if !c.revoked: VButton { y: (parent.height - self.height) / 2; text: "Revoke"; kind: "danger"; compact: true; clicked => { Store.revoke-client(c.id); } }
+                            IconButton { y: (parent.height - self.height) / 2; icon: @image-url("icons/trash.svg"); tint: Theme.red; clicked => { Store.delete-client(c.id); } }
+                        }
+                    }
+                }
+            }
+        }
+        Card {
+            width: 380px;
+            ScrollView {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 10px;
+                    alignment: start;
+                    Text { text: "New client token"; font-size: 16px; font-weight: 800; color: Theme.text; }
+                    Field { label: "NAME"; text <=> Store.c-name; placeholder: "VS Code - Code Reviewer"; }
+                    Field { label: "PROJECT (optional)"; text <=> Store.c-project; placeholder: "payments-api"; }
+                    Field { label: "ALLOWED MODEL ALIASES (comma, empty = all)"; text <=> Store.c-models; placeholder: "foundry-glm, qwen-local"; }
+                    VerticalLayout {
+                        spacing: 4px;
+                        Label { text: "CONSENT"; }
+                        ComboBox { model: ["Ask on every request", "Ask once per session", "Pre-approved (no prompt)"]; current-index <=> Store.c-mode-index; }
+                    }
+                    VerticalLayout {
+                        spacing: 4px;
+                        Label { text: "TOKEN LIFETIME"; }
+                        ComboBox { model: ["1 hour", "8 hours", "1 day", "7 days", "30 days", "90 days", "No expiry (not recommended)"]; current-index <=> Store.c-ttl-index; }
+                    }
+                    GridLayout {
+                        spacing: 8px;
+                        Row {
+                            Field { label: "DAILY BUDGET (USD)"; text <=> Store.c-daily; }
+                            Field { label: "MONTHLY BUDGET (USD)"; text <=> Store.c-monthly; }
+                        }
+                        Row {
+                            Field { label: "REQUESTS / MINUTE"; text <=> Store.c-rpm; }
+                        }
+                    }
+                    Text { text: "0 = no limit. Budgets use the price lists; requests are refused with HTTP 429 when a limit is reached."; font-size: 11px; color: Theme.faint; wrap: word-wrap; }
+                    VButton { text: "Create token"; kind: "teal"; clicked => { Store.create-client(); } }
+                }
+            }
+        }
+    }
+}
+
+export component TokenDialog inherits Modal {
+    title: "Token for " + Store.new-token-client;
+    panel-width: 700px;
+    close => { Store.token-dialog = false; Store.new-token = ""; Store.snippet = ""; }
+    Rectangle {
+        background: Theme.amber-soft;
+        border-radius: 8px;
+        height: wt.preferred-height + 16px;
+        wt := Text {
+            x: 10px;
+            width: parent.width - 20px;
+            text: "This is the only time the token is shown. Only its SHA-256 hash is stored. Give it to the agent / script; it grants model calls through the gateway, never access to provider keys or passwords.";
+            font-size: 12px;
+            color: Theme.amber;
+            wrap: word-wrap;
+        }
+    }
+    HorizontalLayout {
+        spacing: 6px;
+        LineEdit { text: Store.new-token; read-only: true; }
+        VButton { text: "Copy token"; has-icon: true; icon: @image-url("icons/copy.svg"); clicked => { Store.copy-text(Store.new-token); } }
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        Label { text: "QUICK START"; vertical-alignment: center; }
+        ComboBox {
+            width: 330px;
+            model: ["Python (openai SDK)", "Environment variables", "Claude Code", "VS Code Copilot Chat (Custom Endpoint)", "curl"];
+            current-index <=> Store.snippet-index;
+            selected => { Store.snippet-changed(self.current-index); }
+        }
+        Rectangle { }
+        VButton { text: "Copy snippet"; kind: "secondary"; compact: true; clicked => { Store.copy-text(Store.snippet); } }
+    }
+    Rectangle {
+        height: 300px;
+        background: Theme.subtle;
+        border-radius: 10px;
+        border-width: 1px;
+        border-color: Theme.border;
+        TextEdit {
+            x: 6px;
+            y: 6px;
+            width: parent.width - 12px;
+            height: parent.height - 12px;
+            text: Store.snippet;
+            read-only: true;
+            font-size: 12px;
+        }
+    }
+    HorizontalLayout {
+        Rectangle { }
+        VButton { text: "Done"; clicked => { Store.token-dialog = false; Store.new-token = ""; Store.snippet = ""; } }
+    }
+}

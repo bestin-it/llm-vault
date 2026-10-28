@@ -1,0 +1,155 @@
+import { LineEdit, ComboBox, ScrollView } from "std-widgets.slint";
+import { Theme, VButton, Field, Label, Pill, Card, SectionTitle } from "widgets.slint";
+import { Store } from "store.slint";
+
+export component SettingsPage inherits Rectangle {
+    background: Theme.bg;
+    ScrollView {
+        VerticalLayout {
+            alignment: start;
+            padding: 24px;
+            spacing: 16px;
+            SectionTitle { title: "Settings"; subtitle: "Stored inside the encrypted vault, so agents cannot change them on disk."; }
+            HorizontalLayout {
+                spacing: 14px;
+                alignment: stretch;
+                Card {
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text { text: "Gateway"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                        GridLayout {
+                            spacing: 8px;
+                            Row {
+                                Field { label: "BIND ADDRESS"; text <=> Store.s-host; }
+                                Field { label: "PORT"; text <=> Store.s-port; }
+                            }
+                        }
+                        Field { label: "CONSENT TIMEOUT (seconds)"; text <=> Store.s-consent-timeout; }
+                        Text {
+                            text: "Keep 127.0.0.1 on a workstation. Use another address only for the strong-isolation mode (gateway on a separate VM / account) behind a firewall.";
+                            font-size: 11px;
+                            color: Theme.faint;
+                            wrap: word-wrap;
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Text { text: Store.gateway-url != "" ? "Listening on " + Store.gateway-url : Store.gateway-error; font-size: 11px; color: Store.gateway-url != "" ? Theme.green : Theme.red; vertical-alignment: center; wrap: word-wrap; horizontal-stretch: 1; }
+                            VButton { text: "Restart gateway"; kind: "secondary"; compact: true; clicked => { Store.restart-gateway(); } }
+                        }
+                    }
+                }
+                Card {
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text { text: "Security"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                        Field { label: "AUTO-LOCK AFTER (minutes, 0 = never)"; text <=> Store.s-autolock; }
+                        Field { label: "CLEAR CLIPBOARD AFTER (seconds)"; text <=> Store.s-clip; }
+                        Field { label: "CONSENT BUTTON ARMING DELAY (ms)"; text <=> Store.s-arm; }
+                        Text { text: "The arming delay makes it harder for scripts or click-jacking to approve requests by simulating clicks."; font-size: 11px; color: Theme.faint; wrap: word-wrap; }
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                Rectangle { }
+                VButton { text: "Save settings"; clicked => { Store.save-settings(); } }
+            }
+            HorizontalLayout {
+                spacing: 14px;
+                Card {
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text { text: "Currency & exchange rates"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                        VerticalLayout {
+                            spacing: 4px;
+                            Label { text: "DISPLAY CURRENCY"; }
+                            ComboBox { model: ["USD", "EUR", "PLN"]; current-index <=> Store.s-currency-index; selected => { Store.save-settings(); } }
+                        }
+                        for r in Store.fx: HorizontalLayout {
+                            spacing: 10px;
+                            Text { text: "1 USD = " + r.rate + " " + r.currency; font-size: 12px; font-weight: 700; color: Theme.text; }
+                            Text { text: r.date + "  ·  " + r.source; font-size: 11px; color: Theme.muted; overflow: elide; }
+                        }
+                        GridLayout {
+                            spacing: 8px;
+                            Row {
+                                Field { label: "CURRENCY"; text <=> Store.s-fx-currency; }
+                                Field { label: "UNITS PER 1 USD"; text <=> Store.s-fx-rate; }
+                            }
+                            Row {
+                                Field { label: "DATE"; text <=> Store.s-fx-date; }
+                                Field { label: "SOURCE"; text <=> Store.s-fx-source; placeholder: "e.g. NBP / ECB table"; }
+                            }
+                        }
+                        HorizontalLayout { Rectangle { } VButton { text: "Update rate"; kind: "secondary"; compact: true; clicked => { Store.save-fx(); } } }
+                        Text { text: "Historical requests keep their original currency and price version; only the display conversion changes."; font-size: 11px; color: Theme.faint; wrap: word-wrap; }
+                    }
+                }
+                Card {
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text { text: "Vault master password"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                        Field { label: "CURRENT PASSWORD"; password: true; text <=> Store.pw-current; }
+                        Field { label: "NEW PASSWORD"; password: true; text <=> Store.pw-new; }
+                        Field { label: "CONFIRM NEW PASSWORD"; password: true; text <=> Store.pw-new2; }
+                        HorizontalLayout { Rectangle { } VButton { text: "Change password"; kind: "secondary"; compact: true; clicked => { Store.change-password(); } } }
+                    }
+                }
+            }
+            Card {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 10px;
+                    Text { text: "Profile sign-in (" + Store.user-label + ")"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                    Text { text: "The login password protects access to this profile in the app. It is independent of the vault master password."; font-size: 11px; color: Theme.faint; wrap: word-wrap; }
+                    GridLayout {
+                        spacing: 8px;
+                        Row {
+                            Field { label: "CURRENT LOGIN PASSWORD"; password: true; text <=> Store.login-cur; }
+                            Field { label: "NEW LOGIN PASSWORD"; password: true; text <=> Store.login-new; }
+                            Field { label: "CONFIRM"; password: true; text <=> Store.login-new2; }
+                        }
+                    }
+                    HorizontalLayout { Rectangle { } VButton { text: "Change login password"; kind: "secondary"; compact: true; clicked => { Store.change-login-password(); } } }
+                }
+            }
+            HorizontalLayout {
+                spacing: 14px;
+                Card {
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text { text: "Vault file"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                        Text { text: Store.vault-path; font-size: 11px; color: Theme.muted; wrap: word-wrap; }
+                        Text { text: "KDBX 4.1 · AES-256 · Argon2id (64 MiB) · ChaCha20 protected fields · HMAC-SHA-256 block integrity. Opens in KeePass, KeePassXC, KeePassDX and Strongbox."; font-size: 11px; color: Theme.faint; wrap: word-wrap; }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            VButton { text: "Import KeePass file"; kind: "secondary"; compact: true; clicked => { Store.import-kdbx(); } }
+                            VButton { text: "Save a backup copy"; kind: "secondary"; compact: true; clicked => { Store.export-copy(); } }
+                            VButton { text: "Open data folder"; kind: "secondary"; compact: true; clicked => { Store.open-data-dir(); } }
+                        }
+                    }
+                }
+                Card {
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 8px;
+                        Text { text: "About"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                        Text { text: "LLM Vault " + Store.version + " - open source under the Apache License 2.0."; font-size: 12px; color: Theme.text; wrap: word-wrap; }
+                        Text { text: "Built in Rust with Slint (royalty-free license), axum, rustls and keepass-rs."; font-size: 11px; color: Theme.muted; wrap: word-wrap; }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            VButton { text: "bestin-it.com"; kind: "secondary"; compact: true; clicked => { Store.open-url("https://bestin-it.com"); } }
+                            VButton { text: "Source & releases"; kind: "secondary"; compact: true; clicked => { Store.open-url("https://github.com/bestin-it/llm-vault/releases"); } }
+                            VButton { text: "Made with Slint"; kind: "secondary"; compact: true; clicked => { Store.open-url("https://slint.dev"); } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

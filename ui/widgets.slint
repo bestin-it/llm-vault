@@ -1,0 +1,375 @@
+// Brand theme and reusable widgets (bestin-it.com palette).
+import { LineEdit } from "std-widgets.slint";
+
+export global Theme {
+    out property <color> navy: #0f1f3d;
+    out property <color> navy-2: #16294d;
+    out property <color> navy-3: #1f3a6b;
+    out property <color> teal: #14b8a6;
+    out property <color> teal-dark: #0d9488;
+    out property <color> teal-soft: #e3f6f3;
+    out property <color> blue: #2563eb;
+    out property <color> blue-soft: #e8effd;
+    out property <color> amber: #a16207;
+    out property <color> amber-soft: #fdf3e1;
+    out property <color> red: #b42318;
+    out property <color> red-soft: #fdecea;
+    out property <color> green: #0f7a43;
+    out property <color> green-soft: #e3f5ea;
+    out property <color> bg: #f3f6fb;
+    out property <color> card: #ffffff;
+    out property <color> subtle: #f6f8fc;
+    out property <color> border: #dfe6f0;
+    out property <color> text: #0f1f3d;
+    out property <color> muted: #5b6b85;
+    out property <color> faint: #8a97ad;
+    out property <length> r: 10px;
+}
+
+export component VButton inherits Rectangle {
+    in property <string> text;
+    in property <string> kind: "primary"; // primary | secondary | danger | teal | ghost
+    in property <bool> enabled: true;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <bool> compact: false;
+    callback clicked;
+    height: compact ? 28px : 34px;
+    border-radius: 8px;
+    border-width: kind == "secondary" || kind == "ghost-border" ? 1px : 0px;
+    border-color: Theme.border;
+    background: !enabled ? #e7ebf2
+        : kind == "primary" ? (ta.pressed ? #0a162c : ta.has-hover ? Theme.navy-3 : Theme.navy)
+        : kind == "teal" ? (ta.pressed ? #0b7c72 : ta.has-hover ? Theme.teal-dark : Theme.teal)
+        : kind == "danger" ? (ta.has-hover ? #ffdcd8 : Theme.red-soft)
+        : (ta.has-hover ? #eef2f8 : Theme.card);
+    ta := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => { root.clicked(); }
+    }
+    HorizontalLayout {
+        padding-left: compact ? 10px : 14px;
+        padding-right: compact ? 10px : 14px;
+        spacing: 6px;
+        alignment: center;
+        if root.has-icon: Image {
+            source: root.icon;
+            width: compact ? 14px : 16px;
+            height: compact ? 14px : 16px;
+            y: (parent.height - self.height) / 2;
+            colorize: !root.enabled ? Theme.faint : root.kind == "primary" || root.kind == "teal" ? white : root.kind == "danger" ? Theme.red : Theme.text;
+        }
+        Text {
+            text: root.text;
+            vertical-alignment: center;
+            font-size: compact ? 12px : 13px;
+            font-weight: 600;
+            color: !root.enabled ? Theme.faint : root.kind == "primary" || root.kind == "teal" ? white : root.kind == "danger" ? Theme.red : Theme.text;
+        }
+    }
+}
+
+export component IconButton inherits Rectangle {
+    in property <image> icon;
+    in property <string> tooltip;
+    in property <color> tint: Theme.muted;
+    callback clicked;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: ta.has-hover ? #e9eef6 : transparent;
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    Image {
+        source: root.icon;
+        width: 16px;
+        height: 16px;
+        colorize: ta.has-hover ? Theme.text : root.tint;
+    }
+}
+
+export component Card inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    background: Theme.card;
+    border-radius: Theme.r;
+    border-width: 1px;
+    border-color: Theme.border;
+}
+
+export component SectionTitle inherits VerticalLayout {
+    in property <string> title;
+    in property <string> subtitle;
+    spacing: 2px;
+    Text {
+        text: root.title;
+        font-size: 15px;
+        font-weight: 700;
+        color: Theme.text;
+    }
+    if root.subtitle != "": Text {
+        text: root.subtitle;
+        font-size: 12px;
+        color: Theme.muted;
+        wrap: word-wrap;
+    }
+}
+
+export component Pill inherits Rectangle {
+    in property <string> text;
+    in property <string> kind: "neutral"; // neutral | ok | warn | bad | info | dark
+    height: 22px;
+    width: t.preferred-width + 18px;
+    border-radius: 11px;
+    background: kind == "ok" ? Theme.green-soft : kind == "warn" ? Theme.amber-soft : kind == "bad" ? Theme.red-soft : kind == "info" ? Theme.blue-soft : kind == "dark" ? Theme.navy : #edf1f7;
+    t := Text {
+        text: root.text;
+        font-size: 11px;
+        font-weight: 600;
+        vertical-alignment: center;
+        color: root.kind == "ok" ? Theme.green : root.kind == "warn" ? Theme.amber : root.kind == "bad" ? Theme.red : root.kind == "info" ? Theme.blue : root.kind == "dark" ? white : Theme.muted;
+    }
+}
+
+export component Label inherits Text {
+    font-size: 11px;
+    font-weight: 700;
+    color: Theme.muted;
+    letter-spacing: 0.4px;
+}
+
+export component Field inherits VerticalLayout {
+    in property <string> label;
+    in property <string> placeholder;
+    in property <bool> password: false;
+    in property <bool> read-only: false;
+    in-out property <string> text;
+    callback edited(string);
+    callback accepted(string);
+    spacing: 4px;
+    Label { text: root.label; }
+    le := LineEdit {
+        text <=> root.text;
+        placeholder-text: root.placeholder;
+        input-type: root.password ? InputType.password : InputType.text;
+        read-only: root.read-only;
+        edited(t) => { root.edited(t); }
+        accepted(t) => { root.accepted(t); }
+    }
+}
+
+export component KpiTile inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <string> sub;
+    in property <color> accent: Theme.blue;
+    background: Theme.card;
+    border-radius: Theme.r;
+    border-width: 1px;
+    border-color: Theme.border;
+    min-height: 96px;
+    VerticalLayout {
+        padding: 16px;
+        spacing: 6px;
+        Text {
+            text: root.label;
+            font-size: 11px;
+            font-weight: 700;
+            color: root.accent;
+            letter-spacing: 0.5px;
+        }
+        Text {
+            text: root.value;
+            font-size: 26px;
+            font-weight: 800;
+            color: Theme.text;
+            overflow: elide;
+        }
+        Text {
+            text: root.sub;
+            font-size: 12px;
+            color: Theme.muted;
+            overflow: elide;
+        }
+    }
+}
+
+export component BarRow inherits HorizontalLayout {
+    in property <string> label;
+    in property <float> value; // 0..1
+    in property <string> amount;
+    in property <string> sub;
+    in property <color> color: Theme.blue;
+    spacing: 12px;
+    height: 30px;
+    VerticalLayout {
+        width: 30%;
+        alignment: center;
+        Text {
+            text: root.label;
+            font-size: 13px;
+            font-weight: 600;
+            color: Theme.text;
+            overflow: elide;
+        }
+        if root.sub != "": Text {
+            text: root.sub;
+            font-size: 10px;
+            color: Theme.faint;
+            overflow: elide;
+        }
+    }
+    Rectangle {
+        height: 10px;
+        y: (parent.height - self.height) / 2;
+        border-radius: 5px;
+        background: #e6ebf3;
+        Rectangle {
+            x: 0;
+            width: max(parent.height, parent.width * clamp(root.value, 0, 1));
+            border-radius: 5px;
+            background: root.color;
+            visible: root.value > 0;
+        }
+    }
+    Text {
+        width: 90px;
+        text: root.amount;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: Theme.text;
+    }
+}
+
+export component NavItem inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> active;
+    in property <int> badge: 0;
+    callback clicked;
+    height: 38px;
+    border-radius: 8px;
+    background: active ? Theme.navy-3 : ta.has-hover ? Theme.navy-2 : transparent;
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+    if root.active: Rectangle {
+        x: 0;
+        width: 3px;
+        height: 18px;
+        border-radius: 2px;
+        background: Theme.teal;
+    }
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 10px;
+        spacing: 10px;
+        Image {
+            source: root.icon;
+            width: 17px;
+            height: 17px;
+            y: (parent.height - self.height) / 2;
+            colorize: root.active ? Theme.teal : #a9b7d0;
+        }
+        Text {
+            text: root.text;
+            vertical-alignment: center;
+            font-size: 13px;
+            font-weight: root.active ? 700 : 500;
+            color: root.active ? white : #c9d4e8;
+        }
+        if root.badge > 0: Rectangle {
+            width: 22px;
+            height: 18px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 9px;
+            background: #e5484d;
+            Text {
+                text: root.badge;
+                color: white;
+                font-size: 11px;
+                font-weight: 700;
+            }
+        }
+    }
+}
+
+export component Divider inherits Rectangle {
+    height: 1px;
+    background: Theme.border;
+}
+
+export component EmptyState inherits VerticalLayout {
+    in property <string> title;
+    in property <string> text;
+    alignment: center;
+    spacing: 6px;
+    padding: 24px;
+    Text {
+        text: root.title;
+        font-size: 14px;
+        font-weight: 700;
+        color: Theme.text;
+        horizontal-alignment: center;
+    }
+    Text {
+        text: root.text;
+        font-size: 12px;
+        color: Theme.muted;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+}
+
+export component Modal inherits Rectangle {
+    in property <length> panel-width: 560px;
+    in property <string> title;
+    callback close;
+    background: #0f1f3d99;
+    TouchArea { }
+    panel := Rectangle {
+        width: min(root.panel-width, root.width - 40px);
+        height: min(inner.preferred-height, root.height - 40px);
+        background: Theme.card;
+        border-radius: 14px;
+        drop-shadow-blur: 30px;
+        drop-shadow-color: #0004;
+        inner := VerticalLayout {
+            padding: 22px;
+            spacing: 14px;
+            HorizontalLayout {
+                Text {
+                    text: root.title;
+                    font-size: 17px;
+                    font-weight: 800;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+                Rectangle { }
+                Rectangle {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 6px;
+                    background: x-ta.has-hover ? #eef2f8 : transparent;
+                    x-ta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.close(); }
+                    }
+                    Image {
+                        source: @image-url("icons/x.svg");
+                        width: 14px;
+                        height: 14px;
+                        colorize: Theme.muted;
+                    }
+                }
+            }
+            @children
+        }
+    }
+}

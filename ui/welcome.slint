@@ -1,0 +1,403 @@
+import { LineEdit, CheckBox } from "std-widgets.slint";
+import { Theme, VButton, Field, Label } from "widgets.slint";
+import { Store } from "store.slint";
+
+export component WelcomePage inherits Rectangle {
+    background: Theme.bg;
+    property <string> pw;
+    // --tour (scripted demo recordings) types the master password through Store.tour-pw
+    property <string> tour-pw: Store.tour-pw;
+    changed tour-pw => { root.pw = self.tour-pw; }
+    property <string> pw2;
+    property <string> new-user;
+    property <string> new-display;
+    property <float> strength: Store.strength(pw);
+
+    HorizontalLayout {
+        // ---- brand panel
+        Rectangle {
+            width: 42%;
+            background: Theme.navy;
+            clip: true;
+            Rectangle {
+                x: parent.width - 220px;
+                y: -140px;
+                width: 420px;
+                height: 420px;
+                border-radius: 210px;
+                background: #18315c;
+            }
+            Rectangle {
+                x: -120px;
+                y: parent.height - 200px;
+                width: 320px;
+                height: 320px;
+                border-radius: 160px;
+                background: #18315c;
+            }
+            VerticalLayout {
+                padding: 48px;
+                spacing: 18px;
+                alignment: center;
+                HorizontalLayout {
+                    spacing: 12px;
+                    alignment: start;
+                    Rectangle {
+                        width: 70px;
+                        height: 26px;
+                        border-radius: 7px;
+                        background: Theme.teal;
+                        Text {
+                            text: "IT LAB";
+                            color: Theme.navy;
+                            font-size: 11px;
+                            font-weight: 800;
+                        }
+                    }
+                    Text {
+                        text: "bestin-it.com";
+                        color: white;
+                        font-size: 13px;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                    }
+                }
+                Image {
+                    source: @image-url("icons/logo.svg");
+                    width: 76px;
+                    height: 76px;
+                }
+                Text {
+                    text: "LLM\nVAULT";
+                    color: white;
+                    font-size: 56px;
+                    font-weight: 900;
+                }
+                Rectangle {
+                    width: 70px;
+                    height: 5px;
+                    border-radius: 3px;
+                    background: Theme.teal;
+                }
+                Text {
+                    text: "Password manager with a built-in, secure LLM gateway.";
+                    color: white;
+                    font-size: 19px;
+                    font-weight: 700;
+                    wrap: word-wrap;
+                }
+                Text {
+                    text: "API keys stay in an encrypted KeePass-compatible vault. AI agents, VS Code and Python scripts can run approved model calls - but never receive the secret.";
+                    color: #b9c6dd;
+                    font-size: 13px;
+                    wrap: word-wrap;
+                }
+                Text {
+                    text: "SECURITY  •  ANALYTICS  •  DESKTOP";
+                    color: #8fb3d9;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                }
+            }
+        }
+
+        // ---- form
+        VerticalLayout {
+            alignment: center;
+            padding: 48px;
+            HorizontalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 440px;
+                    background: Theme.card;
+                    border-radius: 14px;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    drop-shadow-blur: 24px;
+                    drop-shadow-color: #0f1f3d18;
+                    VerticalLayout {
+
+                    if Store.welcome-mode == "login": VerticalLayout {
+                        padding: 28px;
+                        spacing: 14px;
+                        Text { text: "Sign in"; font-size: 22px; font-weight: 800; color: Theme.text; }
+                        Text {
+                            text: "Each profile has its own vaults, audit log and settings. Your vault is unlocked separately with its master password.";
+                            font-size: 12px;
+                            color: Theme.muted;
+                            wrap: word-wrap;
+                        }
+                        Field { label: "USER NAME"; text <=> Store.login-username; }
+                        if Store.profile-names.length > 1: HorizontalLayout {
+                            spacing: 6px;
+                            alignment: start;
+                            for n in Store.profile-names: VButton {
+                                text: n;
+                                kind: Store.login-username == n ? "primary" : "secondary";
+                                compact: true;
+                                clicked => { Store.login-username = n; }
+                            }
+                        }
+                        Field {
+                            label: "LOGIN PASSWORD";
+                            password: true;
+                            text <=> root.pw;
+                            accepted => { Store.login(Store.login-username, root.pw); root.pw = ""; }
+                        }
+                        if Store.unlock-error != "": Text { text: Store.unlock-error; color: Theme.red; font-size: 12px; wrap: word-wrap; }
+                        VButton {
+                            text: Store.busy ? "Signing in..." : "Sign in";
+                            enabled: !Store.busy && root.pw != "" && Store.login-username != "";
+                            clicked => { Store.login(Store.login-username, root.pw); root.pw = ""; }
+                        }
+                        HorizontalLayout {
+                            alignment: center;
+                            spacing: 4px;
+                            VButton {
+                                text: "Forgot password? Delete profile";
+                                kind: "ghost";
+                                compact: true;
+                                clicked => { Store.delete-profile(Store.login-username); }
+                            }
+                            VButton {
+                                text: "Create a new profile";
+                                kind: "ghost";
+                                compact: true;
+                                clicked => { Store.welcome-mode = "register"; Store.unlock-error = ""; }
+                            }
+                        }
+                    }
+
+                    if Store.welcome-mode == "register": VerticalLayout {
+                        padding: 28px;
+                        spacing: 12px;
+                        Text { text: "Create a profile"; font-size: 22px; font-weight: 800; color: Theme.text; }
+                        Text {
+                            text: "A profile is your sign-in to LLM Vault on this computer. Use separate profiles for separate people or roles.";
+                            font-size: 12px;
+                            color: Theme.muted;
+                            wrap: word-wrap;
+                        }
+                        Field { label: "USER NAME"; text <=> root.new-user; placeholder: "e.g. artur"; }
+                        Field { label: "DISPLAY NAME (optional)"; text <=> root.new-display; }
+                        Field { label: "LOGIN PASSWORD"; password: true; text <=> root.pw; }
+                        Field { label: "CONFIRM LOGIN PASSWORD"; password: true; text <=> root.pw2; }
+                        if Store.unlock-error != "": Text { text: Store.unlock-error; color: Theme.red; font-size: 12px; wrap: word-wrap; }
+                        VButton {
+                            text: Store.busy ? "Creating..." : "Create profile";
+                            kind: "teal";
+                            enabled: !Store.busy && root.new-user != "" && root.pw != "" && root.pw == root.pw2;
+                            clicked => { Store.register(root.new-user, root.new-display, root.pw, root.pw2); root.pw = ""; root.pw2 = ""; }
+                        }
+                        if Store.profile-names.length > 0: HorizontalLayout {
+                            alignment: center;
+                            VButton {
+                                text: "Back to sign in";
+                                kind: "ghost";
+                                compact: true;
+                                clicked => { Store.welcome-mode = "login"; Store.unlock-error = ""; }
+                            }
+                        }
+                    }
+
+                    if Store.welcome-mode == "unlock": VerticalLayout {
+                        padding: 28px;
+                        spacing: 14px;
+                        HorizontalLayout {
+                            spacing: 6px;
+                            Text { text: "Signed in as " + Store.user-label; font-size: 12px; color: Theme.muted; vertical-alignment: center; }
+                            Rectangle { }
+                            VButton { text: "Switch profile"; kind: "ghost"; compact: true; clicked => { Store.logout(); } }
+                        }
+                        Text {
+                            text: "Unlock your vault";
+                            font-size: 22px;
+                            font-weight: 800;
+                            color: Theme.text;
+                        }
+                        Text {
+                            text: "The gateway stays closed (HTTP 423) until the vault is unlocked.";
+                            font-size: 12px;
+                            color: Theme.muted;
+                            wrap: word-wrap;
+                        }
+                        VerticalLayout {
+                            spacing: 4px;
+                            Label { text: "VAULT FILE (.kdbx)"; }
+                            HorizontalLayout {
+                                spacing: 6px;
+                                LineEdit {
+                                    text <=> Store.vault-path;
+                                    placeholder-text: "Choose a .kdbx file";
+                                }
+                                VButton {
+                                    text: "Browse";
+                                    kind: "secondary";
+                                    clicked => { Store.browse-vault(); }
+                                }
+                            }
+                        }
+                        Field {
+                            label: "MASTER PASSWORD";
+                            password: true;
+                            text <=> root.pw;
+                            accepted => { Store.unlock(root.pw); root.pw = ""; }
+                        }
+                        VerticalLayout {
+                            spacing: 4px;
+                            Label { text: "KEY FILE (OPTIONAL)"; }
+                            HorizontalLayout {
+                                spacing: 6px;
+                                LineEdit {
+                                    text <=> Store.keyfile-path;
+                                    placeholder-text: "none";
+                                }
+                                VButton {
+                                    text: "Browse";
+                                    kind: "secondary";
+                                    clicked => { Store.browse-keyfile(); }
+                                }
+                            }
+                        }
+                        if Store.unlock-error != "": Rectangle {
+                            background: Theme.red-soft;
+                            border-radius: 8px;
+                            height: err.preferred-height + 16px;
+                            err := Text {
+                                x: 10px;
+                                width: parent.width - 20px;
+                                text: Store.unlock-error;
+                                color: Theme.red;
+                                font-size: 12px;
+                                wrap: word-wrap;
+                            }
+                        }
+                        VButton {
+                            text: Store.busy ? "Unlocking..." : "Unlock";
+                            enabled: !Store.busy && root.pw != "";
+                            has-icon: true;
+                            icon: @image-url("icons/unlock.svg");
+                            clicked => { Store.unlock(root.pw); root.pw = ""; }
+                        }
+                        HorizontalLayout {
+                            alignment: center;
+                            spacing: 4px;
+                            Text {
+                                text: "No vault yet?";
+                                font-size: 12px;
+                                color: Theme.muted;
+                                vertical-alignment: center;
+                            }
+                            VButton {
+                                text: "Create a new vault";
+                                kind: "ghost";
+                                compact: true;
+                                clicked => { Store.welcome-mode = "create"; Store.unlock-error = ""; }
+                            }
+                        }
+                    }
+
+                    if Store.welcome-mode == "create": VerticalLayout {
+                        padding: 28px;
+                        spacing: 14px;
+                        HorizontalLayout {
+                            spacing: 6px;
+                            Text { text: "Signed in as " + Store.user-label; font-size: 12px; color: Theme.muted; vertical-alignment: center; }
+                            Rectangle { }
+                            VButton { text: "Switch profile"; kind: "ghost"; compact: true; clicked => { Store.logout(); } }
+                        }
+                        Text {
+                            text: "Create a new vault";
+                            font-size: 22px;
+                            font-weight: 800;
+                            color: Theme.text;
+                        }
+                        Text {
+                            text: "KDBX 4 file encrypted with AES-256 and an Argon2id-derived key. It also opens in KeePass / KeePassXC. There is no password recovery - keep it safe.";
+                            font-size: 12px;
+                            color: Theme.muted;
+                            wrap: word-wrap;
+                        }
+                        VerticalLayout {
+                            spacing: 4px;
+                            Label { text: "SAVE AS"; }
+                            HorizontalLayout {
+                                spacing: 6px;
+                                LineEdit { text <=> Store.new-vault-path; }
+                                VButton {
+                                    text: "Browse";
+                                    kind: "secondary";
+                                    clicked => { Store.browse-new-vault(); }
+                                }
+                            }
+                        }
+                        Field {
+                            label: "MASTER PASSWORD";
+                            password: true;
+                            text <=> root.pw;
+                        }
+                        Rectangle {
+                            height: 6px;
+                            border-radius: 3px;
+                            background: #e6ebf3;
+                            Rectangle {
+                                x: 0;
+                                width: parent.width * root.strength;
+                                border-radius: 3px;
+                                background: root.strength < 0.35 ? Theme.red : root.strength < 0.7 ? #e0a100 : Theme.teal;
+                            }
+                        }
+                        Text {
+                            text: Store.strength-label(root.pw);
+                            font-size: 11px;
+                            color: Theme.muted;
+                        }
+                        Field {
+                            label: "CONFIRM PASSWORD";
+                            password: true;
+                            text <=> root.pw2;
+                        }
+                        VerticalLayout {
+                            spacing: 4px;
+                            Label { text: "KEY FILE (OPTIONAL, KEEPASS COMPATIBLE)"; }
+                            HorizontalLayout {
+                                spacing: 6px;
+                                LineEdit { text <=> Store.keyfile-path; placeholder-text: "none"; }
+                                VButton { text: "Browse"; kind: "secondary"; clicked => { Store.browse-keyfile(); } }
+                            }
+                        }
+                        if Store.unlock-error != "": Text {
+                            text: Store.unlock-error;
+                            color: Theme.red;
+                            font-size: 12px;
+                            wrap: word-wrap;
+                        }
+                        VButton {
+                            text: Store.busy ? "Creating..." : "Create vault";
+                            kind: "teal";
+                            enabled: !Store.busy && root.pw != "" && root.pw == root.pw2;
+                            clicked => { Store.create-vault(root.pw, root.pw2); root.pw = ""; root.pw2 = ""; }
+                        }
+                        HorizontalLayout {
+                            alignment: center;
+                            VButton {
+                                text: "I already have a vault / KeePass database";
+                                kind: "ghost";
+                                compact: true;
+                                clicked => { Store.welcome-mode = "unlock"; Store.unlock-error = ""; }
+                            }
+                        }
+                    }
+                    }
+                }
+            }
+            Text {
+                text: "LLM Vault " + Store.version + "  •  Apache-2.0 open source  •  bestin-it.com";
+                font-size: 11px;
+                color: Theme.faint;
+                horizontal-alignment: center;
+            }
+        }
+    }
+}

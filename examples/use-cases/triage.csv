@@ -1,0 +1,12 @@
+1041,billing,high,Double charge refund request
+1042,bug,high,CSV export fails in Firefox
+1043,outage,high,"Team unable to log in, error 500"
+1044,feature,medium,Request for dark mode in mobile app
+1045,account,medium,Change account email address
+1046,api,high,API returns 429 despite low usage
+1047,billing,high,Incorrect VAT number on invoice
+1048,bug,high,Dashboard load time increased
+1049,privacy,high,Delete account and data per GDPR
+1050,api,high,Webhook deliveries stopped abruptly
+1051,sales,low,Non-profit discount inquiry
+1052,account,high,Password reset email not received

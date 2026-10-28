@@ -1,0 +1,33 @@
+name: Bug report
+description: Something does not work as described
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "**Security problem?** Do not file it here - use a private advisory (see SECURITY.md)."
+  - type: input
+    id: version
+    attributes:
+      label: LLM Vault version
+      description: Output of `llmvault --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows 10/11, macOS, Linux]
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: Provider / client involved
+      placeholder: e.g. Ollama local + Claude Code, Azure AI Foundry + VS Code Copilot
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce and what happened
+      description: Remove every key and token from logs before pasting.
+    validations:
+      required: true

@@ -1,0 +1,145 @@
+import { ListView, ScrollView } from "std-widgets.slint";
+import { Theme, VButton, IconButton, Label, Pill, EmptyState, Card, SectionTitle, Modal } from "widgets.slint";
+import { Store, ConsentItem } from "store.slint";
+
+export component ConsentsPage inherits Rectangle {
+    background: Theme.bg;
+    ScrollView {
+        VerticalLayout {
+            alignment: start;
+            padding: 24px;
+            spacing: 16px;
+            SectionTitle {
+                title: "Consents";
+                subtitle: "Who may use which model without asking. 'Session' grants end when the vault is locked; standing rules last until revoked.";
+            }
+            Card {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        Text { text: "Waiting for your decision"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                        Rectangle { }
+                        Pill { text: Store.pending.length + " pending"; kind: Store.pending.length > 0 ? "warn" : "neutral"; }
+                    }
+                    for c in Store.pending: Rectangle {
+                        height: 56px;
+                        border-radius: 8px;
+                        background: Theme.amber-soft;
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 10px;
+                            spacing: 8px;
+                            VerticalLayout {
+                                alignment: center;
+                                horizontal-stretch: 1;
+                                Text { text: c.client + (c.agent != "" ? " / " + c.agent : "") + "  →  " + c.provider + " / " + c.model; font-size: 13px; font-weight: 700; color: Theme.text; overflow: elide; }
+                                Text { text: "requested " + c.requested + (c.project != "" ? "  ·  project " + c.project : ""); font-size: 11px; color: Theme.muted; }
+                            }
+                            VButton { y: (parent.height - self.height) / 2; text: "Deny"; kind: "danger"; compact: true; clicked => { Store.decide(c.id, 0); } }
+                            VButton { y: (parent.height - self.height) / 2; text: "Allow once"; kind: "secondary"; compact: true; clicked => { Store.decide(c.id, 1); } }
+                            VButton { y: (parent.height - self.height) / 2; text: "Allow for session"; compact: true; clicked => { Store.decide(c.id, 2); } }
+                        }
+                    }
+                    if Store.pending.length == 0: Text { text: "No pending requests."; font-size: 12px; color: Theme.faint; }
+                }
+            }
+            Card {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    Text { text: "Active grants and rules"; font-size: 14px; font-weight: 800; color: Theme.text; }
+                    for r in Store.rules: Rectangle {
+                        height: 48px;
+                        border-radius: 8px;
+                        background: Theme.subtle;
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 10px;
+                            spacing: 10px;
+                            VerticalLayout { alignment: center; Pill { text: r.kind; kind: r.kind == "always" ? "warn" : r.kind == "pre-approved" ? "bad" : "info"; } }
+                            VerticalLayout {
+                                alignment: center;
+                                horizontal-stretch: 1;
+                                Text { text: r.client + "  →  " + r.model; font-size: 13px; font-weight: 700; color: Theme.text; }
+                                Text { text: r.created; font-size: 11px; color: Theme.muted; }
+                            }
+                            VButton { y: (parent.height - self.height) / 2; text: "Revoke"; kind: "danger"; compact: true; clicked => { Store.revoke-rule(r.kind, r.id, r.model); } }
+                        }
+                    }
+                    if Store.rules.length == 0: Text { text: "Nothing is pre-approved - every request needs your consent."; font-size: 12px; color: Theme.faint; }
+                }
+            }
+        }
+    }
+}
+
+/// The consent prompt shown on top of everything when an agent asks to use a model.
+export component ConsentDialog inherits Rectangle {
+    in property <ConsentItem> c;
+    in property <int> queue;
+    property <bool> armed: false;
+    background: #0f1f3dcc;
+    TouchArea { }
+    arm := Timer {
+        interval: Store.consent-arm-ms * 1ms;
+        running: !root.armed;
+        triggered => { root.armed = true; }
+    }
+    changed c => { root.armed = false; }
+    Rectangle {
+        width: min(620px, root.width - 40px);
+        height: inner.preferred-height;
+        background: Theme.card;
+        border-radius: 16px;
+        drop-shadow-blur: 40px;
+        drop-shadow-color: #0006;
+        inner := VerticalLayout {
+            padding: 26px;
+            spacing: 14px;
+            HorizontalLayout {
+                spacing: 12px;
+                Rectangle {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 12px;
+                    background: Theme.amber-soft;
+                    Image { source: @image-url("icons/shield.svg"); width: 22px; height: 22px; colorize: Theme.amber; }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Text { text: "Model access request"; font-size: 12px; font-weight: 800; color: Theme.amber; letter-spacing: 0.6px; }
+                    Text { text: root.c.client + (root.c.agent != "" ? " / " + root.c.agent : "") + " wants to use " + root.c.provider + " / " + root.c.model; font-size: 17px; font-weight: 800; color: Theme.text; wrap: word-wrap; }
+                }
+            }
+            Rectangle {
+                background: Theme.subtle;
+                border-radius: 10px;
+                height: det.preferred-height;
+                det := GridLayout {
+                    padding: 14px;
+                    spacing: 6px;
+                    Row { Label { text: "CLIENT"; } Text { text: root.c.client; font-size: 12px; color: Theme.text; } }
+                    Row { Label { text: "AGENT"; } Text { text: root.c.agent != "" ? root.c.agent : "-"; font-size: 12px; color: Theme.text; } }
+                    Row { Label { text: "PROJECT"; } Text { text: root.c.project != "" ? root.c.project : "-"; font-size: 12px; color: Theme.text; } }
+                    Row { Label { text: "MODEL"; } Text { text: root.c.model + "  (" + root.c.upstream + ")"; font-size: 12px; color: Theme.text; } }
+                    Row { Label { text: "REQUESTED"; } Text { text: root.c.requested; font-size: 12px; color: Theme.text; } }
+                }
+            }
+            Text {
+                text: "Approving lets the gateway call the provider with the key stored in your vault. The client never receives the key. " + (root.queue > 1 ? root.queue + " requests are waiting." : "");
+                font-size: 12px;
+                color: Theme.muted;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                spacing: 10px;
+                VButton { text: "Deny"; kind: "danger"; enabled: root.armed; clicked => { Store.decide(root.c.id, 0); } }
+                Rectangle { }
+                if root.c.mode != "session": VButton { text: "Allow once"; kind: "secondary"; enabled: root.armed; clicked => { Store.decide(root.c.id, 1); } }
+                VButton { text: "Allow for this session"; kind: "primary"; enabled: root.armed; clicked => { Store.decide(root.c.id, 2); } }
+                VButton { text: "Always allow"; kind: "secondary"; enabled: root.armed; clicked => { Store.decide(root.c.id, 3); } }
+            }
+        }
+    }
+}

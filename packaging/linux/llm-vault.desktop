@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=LLM Vault
+GenericName=Password manager and LLM gateway
+Comment=KeePass-compatible vault with a secure LLM gateway for AI agents
+Exec=llmvault
+Icon=llm-vault
+Terminal=false
+Categories=Utility;Security;Development;
+Keywords=keepass;password;llm;ai;gateway;secrets;
+StartupWMClass=llmvault

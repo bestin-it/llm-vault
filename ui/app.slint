@@ -1,0 +1,230 @@
+import { Theme, VButton, IconButton, NavItem, Pill, Modal, Field } from "widgets.slint";
+import { Store } from "store.slint";
+import { WelcomePage } from "welcome.slint";
+import { DashboardPage } from "dashboard.slint";
+import { PasswordsPage } from "passwords.slint";
+import { ProvidersPage, ProviderDialog, DiscoverDialog } from "providers.slint";
+import { ModelsPage } from "models.slint";
+import { ClientsPage, TokenDialog } from "clients.slint";
+import { ConsentsPage, ConsentDialog } from "consents.slint";
+import { ActivityPage } from "activity.slint";
+import { SettingsPage } from "settings.slint";
+
+export { Store }
+
+export component AppWindow inherits Window {
+    title: Store.unlocked ? "LLM Vault - " + Store.vault-name : "LLM Vault";
+    icon: @image-url("icons/app.png");
+    preferred-width: 1360px;
+    preferred-height: 860px;
+    min-width: 1100px;
+    min-height: 700px;
+    background: Theme.bg;
+    default-font-size: 13px;
+
+    // Any pointer activity counts as user activity for the auto-lock timer.
+    activity-ta := TouchArea {
+        pointer-event(e) => { if (e.kind == PointerEventKind.down) { Store.activity(); } }
+    }
+
+    if !Store.unlocked: WelcomePage { }
+
+    if Store.unlocked: HorizontalLayout {
+        // ---------------- sidebar
+        Rectangle {
+            width: 228px;
+            background: Theme.navy;
+            VerticalLayout {
+                padding: 14px;
+                spacing: 4px;
+                HorizontalLayout {
+                    padding-bottom: 18px;
+                    padding-top: 6px;
+                    spacing: 10px;
+                    Image { source: @image-url("icons/logo.svg"); width: 34px; height: 34px; }
+                    VerticalLayout {
+                        alignment: center;
+                        Text { text: "LLM VAULT"; color: white; font-size: 15px; font-weight: 900; letter-spacing: 1px; }
+                        Text { text: "bestin-it.com"; color: #8fb3d9; font-size: 10px; font-weight: 600; }
+                    }
+                }
+                NavItem { text: "Dashboard"; icon: @image-url("icons/dashboard.svg"); active: Store.page == 0; clicked => { Store.navigate(0); } }
+                NavItem { text: "Passwords"; icon: @image-url("icons/lock.svg"); active: Store.page == 1; clicked => { Store.navigate(1); } }
+                NavItem { text: "Providers"; icon: @image-url("icons/server.svg"); active: Store.page == 2; clicked => { Store.navigate(2); } }
+                NavItem { text: "Models & pricing"; icon: @image-url("icons/layers.svg"); active: Store.page == 3; clicked => { Store.navigate(3); } }
+                NavItem { text: "Clients & agents"; icon: @image-url("icons/users.svg"); active: Store.page == 4; clicked => { Store.navigate(4); } }
+                NavItem { text: "Consents"; icon: @image-url("icons/shield.svg"); active: Store.page == 5; badge: Store.pending.length; clicked => { Store.navigate(5); } }
+                NavItem { text: "Activity"; icon: @image-url("icons/activity.svg"); active: Store.page == 6; clicked => { Store.navigate(6); } }
+                NavItem { text: "Settings"; icon: @image-url("icons/settings.svg"); active: Store.page == 7; clicked => { Store.navigate(7); } }
+                Rectangle { }
+                Rectangle {
+                    height: 44px;
+                    border-radius: 10px;
+                    background: Theme.navy-2;
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 6px;
+                        spacing: 8px;
+                        Rectangle {
+                            width: 28px;
+                            height: 28px;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: 14px;
+                            background: Theme.teal;
+                            Text { text: Store.user-initials; color: Theme.navy; font-size: 11px; font-weight: 800; }
+                        }
+                        Text { text: Store.user-label; color: white; font-size: 12px; font-weight: 600; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+                        Rectangle {
+                            width: 58px;
+                            height: 26px;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: 6px;
+                            background: so-ta.has-hover ? Theme.navy-3 : transparent;
+                            so-ta := TouchArea { mouse-cursor: pointer; clicked => { Store.logout(); } }
+                            Text { text: "Sign out"; color: #a9b7d0; font-size: 11px; }
+                        }
+                    }
+                }
+                Rectangle {
+                    height: 70px;
+                    border-radius: 10px;
+                    background: Theme.navy-2;
+                    VerticalLayout {
+                        padding: 10px;
+                        spacing: 3px;
+                        Text { text: "ZERO-KNOWLEDGE GATEWAY"; color: Theme.teal; font-size: 9px; font-weight: 800; letter-spacing: 0.8px; }
+                        Text { text: "Agents use models.\nThey never read keys."; color: #c9d4e8; font-size: 11px; }
+                    }
+                }
+                Text { text: "v" + Store.version + " · Apache-2.0"; color: #6f84a8; font-size: 10px; horizontal-alignment: center; }
+            }
+        }
+
+        VerticalLayout {
+            // ---------------- top bar
+            Rectangle {
+                height: 58px;
+                background: Theme.card;
+                Rectangle { y: parent.height - 1px; height: 1px; background: Theme.border; }
+                HorizontalLayout {
+                    padding-left: 22px;
+                    padding-right: 16px;
+                    spacing: 10px;
+                    Text {
+                        text: Store.page == 0 ? "Dashboard" : Store.page == 1 ? "Passwords" : Store.page == 2 ? "Providers" : Store.page == 3 ? "Models & pricing" : Store.page == 4 ? "Clients & agents" : Store.page == 5 ? "Consents" : Store.page == 6 ? "Activity" : "Settings";
+                        font-size: 18px;
+                        font-weight: 800;
+                        color: Theme.text;
+                        vertical-alignment: center;
+                    }
+                    Rectangle { }
+                    Rectangle {
+                        height: 32px;
+                        y: (parent.height - self.height) / 2;
+                        border-radius: 16px;
+                        background: Theme.subtle;
+                        border-width: 1px;
+                        border-color: Theme.border;
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 4px;
+                            spacing: 8px;
+                            Rectangle {
+                                width: 8px;
+                                height: 8px;
+                                y: (parent.height - self.height) / 2;
+                                border-radius: 4px;
+                                background: Store.gateway-url != "" ? #22c55e : #ef4444;
+                            }
+                            Text {
+                                text: Store.gateway-url != "" ? "Gateway  " + Store.gateway-url : "Gateway stopped";
+                                font-size: 12px;
+                                font-weight: 600;
+                                color: Theme.text;
+                                vertical-alignment: center;
+                            }
+                            IconButton {
+                                y: (parent.height - self.height) / 2;
+                                icon: @image-url("icons/copy.svg");
+                                clicked => { Store.copy-text(Store.gateway-url); }
+                            }
+                        }
+                    }
+                    VerticalLayout { alignment: center; Pill { text: "vault unlocked"; kind: "ok"; } }
+                    VButton {
+                        y: (parent.height - self.height) / 2;
+                        text: "Lock";
+                        has-icon: true;
+                        icon: @image-url("icons/lock.svg");
+                        clicked => { Store.lock(); }
+                    }
+                }
+            }
+            // ---------------- page
+            if Store.page == 0: DashboardPage { }
+            if Store.page == 1: PasswordsPage { }
+            if Store.page == 2: ProvidersPage { }
+            if Store.page == 3: ModelsPage { }
+            if Store.page == 4: ClientsPage { }
+            if Store.page == 5: ConsentsPage { }
+            if Store.page == 6: ActivityPage { }
+            if Store.page == 7: SettingsPage { }
+        }
+    }
+
+    // ---------------- overlays
+    if Store.provider-dialog: ProviderDialog { }
+    if Store.discover-dialog: DiscoverDialog { }
+    if Store.token-dialog: TokenDialog { }
+    if Store.confirm-open: Modal {
+        title: Store.confirm-title;
+        panel-width: 460px;
+        close => { Store.confirm-open = false; }
+        Text { text: Store.confirm-text; font-size: 13px; color: Theme.muted; wrap: word-wrap; }
+        if Store.confirm-expected != "": Field {
+            label: "TYPE \"" + Store.confirm-expected + "\" TO CONFIRM";
+            text <=> Store.confirm-input;
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            Rectangle { }
+            VButton { text: "Cancel"; kind: "secondary"; clicked => { Store.confirm-open = false; Store.confirm-input = ""; } }
+            VButton {
+                text: "Confirm";
+                kind: "danger";
+                enabled: Store.confirm-expected == "" || Store.confirm-input == Store.confirm-expected;
+                clicked => { Store.confirm-open = false; Store.confirm-accepted(); Store.confirm-input = ""; }
+            }
+        }
+    }
+    if Store.unlocked && Store.pending.length > 0: ConsentDialog {
+        c: Store.pending[0];
+        queue: Store.pending.length;
+    }
+
+    // ---------------- toast
+    if Store.toast != "": Rectangle {
+        x: (parent.width - self.width) / 2;
+        y: parent.height - self.height - 24px;
+        width: min(toast-text.preferred-width + 40px, parent.width - 80px);
+        height: toast-text.preferred-height + 22px;
+        border-radius: 10px;
+        background: Store.toast-error ? #7f1d1d : Theme.navy;
+        drop-shadow-blur: 16px;
+        drop-shadow-color: #0004;
+        toast-text := Text {
+            width: parent.width - 40px;
+            text: Store.toast;
+            color: white;
+            font-size: 13px;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+        }
+        TouchArea { clicked => { Store.toast = ""; } }
+    }
+    toast-timer := Timer {
+        interval: 4s;
+        running: Store.toast != "";
+        triggered => { Store.toast = ""; }
+    }
+}
