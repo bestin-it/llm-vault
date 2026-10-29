@@ -12,7 +12,7 @@
   <a href="https://bestin-it.com/llm-vault/"><img src="https://img.shields.io/badge/download-Windows%20installer-0A84FF?logo=windows&logoColor=white" alt="Download for Windows"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License Apache-2.0"></a>
   <a href="https://github.com/bestin-it/llm-vault/actions/workflows/ci.yml"><img src="https://github.com/bestin-it/llm-vault/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-555" alt="Platforms">
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%C2%B7%20Linux%20from%20source-555" alt="Platforms: Windows installer; macOS and Linux from source">
   <img src="https://img.shields.io/badge/built%20with-Rust%20%2B%20Slint-orange?logo=rust" alt="Rust + Slint">
 </p>
 
