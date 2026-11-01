@@ -49,6 +49,8 @@ Real recordings of the app, real HTTP responses, local models. Click a thumbnail
 <tr><td width="33%" valign="top"><a href="https://bestin-it.com/ai-agent-api-key-security/"><img src="docs/media/video-e5.jpg" alt="E5 · I leaked my AI agent's token on purpose"></a><br><sub><b>E5 · I leaked my AI agent's token on purpose</b> · 0:36</sub></td><td width="33%" valign="top"><a href="https://bestin-it.com/llm-vault/"><img src="docs/media/video-e6.jpg" alt="E6 · One audit log for every AI tool on your machine"></a><br><sub><b>E6 · One audit log for every AI tool on your machine</b> · 0:36</sub></td></tr>
 </table>
 
+**Shorts:** [My AI agent asked for my API key. Politely.](https://youtu.be/HGoFO1RWY1M)
+
 **Playlists:** [LLM Vault - AI agents without API keys](https://www.youtube.com/playlist?list=PLey0tug_UaH8)
 
 Subscribe on YouTube: https://www.youtube.com/@bestin-it
